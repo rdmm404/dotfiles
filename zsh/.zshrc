@@ -21,6 +21,7 @@ plug "zap-zsh/exa"
 plug "zsh-users/zsh-syntax-highlighting"
 plug "zsh-users/zsh-history-substring-search"
 plug "paulirish/git-open"
+plug "wfxr/forgit"
 
 # keybinds
 bindkey '^ ' autosuggest-accept
