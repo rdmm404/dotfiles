@@ -11,6 +11,7 @@ HISTFILE=~/.zsh_history
 plug "$HOME/.config/zsh/aliases.zsh"
 plug "$HOME/.config/zsh/exports.zsh"
 plug "$HOME/.config/zsh/functions.zsh"
+plug "$HOME/.config/zsh/plugins/ssh-agent.zsh"
 
 # plugins
 plug "zsh-users/zsh-autosuggestions"
