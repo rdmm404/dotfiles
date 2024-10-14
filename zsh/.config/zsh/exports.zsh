@@ -12,7 +12,7 @@ export HOMEBREW_NO_ENV_HINTS=1
 eval "$(starship init zsh)"
 eval "$(zoxide init zsh --cmd cd)"
 # Set up fzf key bindings and fuzzy completion
-source <(fzf --zsh)
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 # nvm
 export NVM_DIR="$HOME/.nvm"
@@ -23,7 +23,7 @@ export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || pr
 # Forgit - git fzf
 [ -f $HOMEBREW_PREFIX/share/forgit/forgit.plugin.zsh ] && source $HOMEBREW_PREFIX/share/forgit/forgit.plugin.zsh
 
-. "$HOME/.cargo/env"
+# . "$HOME/.cargo/env"
 
 # pyenv
 export PYENV_ROOT="$HOME/.pyenv"
@@ -42,6 +42,7 @@ Darwin)
 	;;
 
 Linux)
+  export PATH="$PATH:/snap/bin"
 	;;
 
 CYGWIN* | MINGW32* | MSYS* | MINGW*)
