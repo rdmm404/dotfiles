@@ -45,3 +45,4 @@ bindkey -M vicmd 'j' history-substring-search-down
 
 bindkey ';5D' backward-word
 bindkey ';5C' forward-word
+. "$HOME/.cargo/env"

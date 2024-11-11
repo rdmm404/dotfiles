@@ -43,6 +43,13 @@ Darwin)
 
 Linux)
   export PATH="$PATH:/snap/bin"
+  if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ]; then
+    # forwarding GUIs to windows for WSL
+    # https://medium.com/@matthewkleinsmith/headful-playwright-with-wsl-4bf697a44ecf
+    export DISPLAY=$(cat /etc/resolv.conf | grep nameserver | awk '{print $2; exit;}'):0.0
+    sudo /etc/init.d/dbus start &> /dev/null
+  fi
+
 	;;
 
 CYGWIN* | MINGW32* | MSYS* | MINGW*)
