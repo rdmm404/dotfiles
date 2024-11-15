@@ -46,8 +46,10 @@ Linux)
   if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ]; then
     # forwarding GUIs to windows for WSL
     # https://medium.com/@matthewkleinsmith/headful-playwright-with-wsl-4bf697a44ecf
-    export DISPLAY=$(cat /etc/resolv.conf | grep nameserver | awk '{print $2; exit;}'):0.0
-    sudo /etc/init.d/dbus start &> /dev/null
+    # https://aalonso.dev/blog/2021/how-to-use-gui-apps-in-wsl2-forwarding-x-server-cdj
+    export DISPLAY=$(ip route | awk '/default/ { print $3 }'):1.0
+    export LIBGL_ALWAYS_INDIRECT=true
+    export LIBGL_ALWAYS_SOFTWARE=true
   fi
 
 	;;
