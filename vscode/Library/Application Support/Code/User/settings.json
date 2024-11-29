@@ -1,0 +1,109 @@
+{
+  "workbench.colorTheme": "Dracula Theme",
+  "workbench.iconTheme": "moxer-icons",
+  "editor.rulers": [
+    {
+      "column": 80
+    }
+  ],
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff"
+  },
+  "python.venvFolders": [
+    "/Users/robert.martinez/Library/Caches/pypoetry/virtualenvs"
+  ],
+  "openInGitHub.useLocalBranch": false,
+  "diffEditor.ignoreTrimWhitespace": false,
+  "diffEditor.experimental.showMoves": true,
+  "errorLens.enabledDiagnosticLevels": [
+    "warning",
+    "info",
+    "error"
+  ],
+  "editor.minimap.enabled": false,
+  "diffEditor.hideUnchangedRegions.enabled": true,
+  "diffEditor.renderSideBySide": true, // Use the local branch instead of the fixed remote branch
+
+  "[json][jsonc][javascript][javascriptreact][typescript][typescriptreact]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+  // SETINGS TAKEN FROM https://gist.github.com/ixahmedxi/b9a5a9105bfa39b72b914d9c56bb1cf3
+  // ui
+  "window.commandCenter": false,
+  "editor.scrollbar.vertical": "auto",
+  "window.titleBarStyle": "custom",
+  "editor.scrollbar.horizontal": "auto",
+  // "window.customTitleBarVisibility": "never",
+  // APC
+  "apc.activityBar": {
+    "position": "bottom",
+    "hideSettings": true,
+    "size": 30
+  },
+  "apc.electron": {
+    "titleBarStyle": "hidden",
+    "trafficLightPosition": {
+      "x": 12,
+      "y": 10
+    }
+  },
+  "apc.statusBar": {
+    "position": "editor-bottom",
+    "height": 28,
+    "fontSize": 12
+  },
+  // Aura theme customisation
+  "workbench.colorCustomizations": {
+    "[Dracula Theme]": {
+      "editor.background": "#21222c",
+      "terminal.background": "#21222c",
+      "activityBar.background": "#21222c",
+      "statusBar.background": "#21222c",
+      "editorGroupHeader.tabsBackground": "#21222c",
+      "tab.activeBackground": "#21222c",
+      "tab.inactiveBackground": "#21222c",
+      "breadcrumb.background": "#21222c",
+    }
+  },
+
+  // Cusom css
+  "apc.stylesheet": {
+    // ".sidebar > .composite": "height: 12px !important",
+    ".title-label": "display: none !important",
+    // ".title-actions": "display: none !important",
+    // ".tabs-and-actions-container > .editor-actions": "display: none !important",
+    // ".titlebar-center": "display: none !important",
+    ".titlebar-right": "opacity: 0 !important",
+    // ".inline-tabs-placeholder": "display: none !important",
+    // ".split-view-view .visible": "background-color: #110f17 !important"
+  },
+
+  // Misc
+  "workbench.startupEditor": "none",
+  "explorer.compactFolders": false,
+  "editor.linkedEditing": true,
+  "breadcrumbs.filePath": "on",
+  "files.trimTrailingWhitespace": true,
+  "[markdown]": {
+    "files.trimTrailingWhitespace": false
+  },
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": false,
+
+  // Change font EVERYWHERE
+  "editor.fontFamily": "FiraCode Nerd Font",
+  "scm.inputFontFamily": "FiraCode Nerd Font",
+  "terminal.integrated.fontFamily": "FiraCode Nerd Font",
+  "chat.editor.fontFamily": "FiraCode Nerd Font",
+  "debug.console.fontFamily": "FiraCode Nerd Font",
+  "editor.codeLensFontFamily": "FiraCode Nerd Font",
+  "notebook.output.fontFamily": "FiraCode Nerd Font",
+  "markdown.preview.fontFamily": "FiraCode Nerd Font",
+  "editor.inlayHints.fontFamily": "FiraCode Nerd Font",
+  "apc.font.family": "FiraCode Nerd Font",
+  "errorLens.enabled": true,
+  "vscode-pets.petColor": "green",
+  "vscode-pets.petSize": "small",
+  "vscode-pets.throwBallWithMouse": true,
+}
