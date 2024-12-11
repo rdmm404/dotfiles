@@ -1,4 +1,5 @@
 # Variables
+SHELL := /bin/bash
 OS := $(shell uname -s)
 
 # Targets
@@ -21,6 +22,6 @@ else
 		sudo apt-get install -y zsh || sudo yum install -y zsh; \
 	fi
 endif
-	zsh <(curl -s https://raw.githubusercontent.com/zap-zsh/zap/master/install.zsh) --branch release-v1>
+	zsh <(curl -s https://raw.githubusercontent.com/zap-zsh/zap/master/install.zsh) --branch release-v1
 
 .PHONY: stow install

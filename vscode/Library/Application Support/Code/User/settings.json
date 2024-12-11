@@ -36,23 +36,23 @@
   "editor.scrollbar.horizontal": "auto",
   // "window.customTitleBarVisibility": "never",
   // APC
-  "apc.activityBar": {
-    "position": "bottom",
-    "hideSettings": true,
-    "size": 30
-  },
-  "apc.electron": {
-    "titleBarStyle": "hidden",
-    "trafficLightPosition": {
-      "x": 12,
-      "y": 10
-    }
-  },
-  "apc.statusBar": {
-    "position": "editor-bottom",
-    "height": 28,
-    "fontSize": 12
-  },
+  // "apc.activityBar": {
+  //   "position": "bottom",
+  //   "hideSettings": true,
+  //   "size": 30
+  // },
+  // "apc.electron": {
+  //   "titleBarStyle": "hidden",
+  //   "trafficLightPosition": {
+  //     "x": 12,
+  //     "y": 10
+  //   }
+  // },
+  // "apc.statusBar": {
+  //   "position": "editor-bottom",
+  //   "height": 28,
+  //   "fontSize": 12
+  // },
   // Aura theme customisation
   "workbench.colorCustomizations": {
     "[Dracula Theme]": {
@@ -68,16 +68,18 @@
   },
 
   // Cusom css
-  "apc.stylesheet": {
-    // ".sidebar > .composite": "height: 12px !important",
-    ".title-label": "display: none !important",
-    // ".title-actions": "display: none !important",
-    // ".tabs-and-actions-container > .editor-actions": "display: none !important",
-    // ".titlebar-center": "display: none !important",
-    ".titlebar-right": "opacity: 0 !important",
-    // ".inline-tabs-placeholder": "display: none !important",
-    // ".split-view-view .visible": "background-color: #110f17 !important"
-  },
+    "vscode_custom_css.imports": ["file:///Users/rdmm123/.config/vscode/styles.css"],
+  // "apc.stylesheet": {
+  //   // ".sidebar > .composite": "height: 12px !important",
+  //   ".title-label": "display: none !important",
+  //   // ".title-actions": "display: none !important",
+  //   // ".tabs-and-actions-container > .editor-actions": "display: none !important",
+  //   // ".titlebar-center": "display: none !important",
+  //   ".titlebar-right": "opacity: 0 !important",
+  //   // ".inline-tabs-placeholder": "display: none !important",
+  //   // ".split-view-view .visible": "background-color: #110f17 !important"
+  // },
+
 
   // Misc
   "workbench.startupEditor": "none",
@@ -106,4 +108,5 @@
   "vscode-pets.petColor": "green",
   "vscode-pets.petSize": "small",
   "vscode-pets.throwBallWithMouse": true,
+  "workbench.activityBar.location": "bottom",
 }
