@@ -41,6 +41,15 @@ export AWS_PROFILE=admin
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
+# pnpm
+export PNPM_HOME="/Users/robert.martinez/Library/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+# pnpm end
+
+
 case "$(uname -s)" in
 
 Darwin)
