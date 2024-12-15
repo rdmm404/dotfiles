@@ -18,7 +18,7 @@ eval "$(zoxide init zsh --cmd cd)"
 export NVM_DIR="$HOME/.nvm"
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+# [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 # Forgit - git fzf
 [ -f $HOMEBREW_PREFIX/share/forgit/forgit.plugin.zsh ] && source $HOMEBREW_PREFIX/share/forgit/forgit.plugin.zsh
@@ -32,6 +32,14 @@ eval "$(pyenv init -)"
 
 export GOPATH=$HOME/go
 export PATH=$PATH:$GOPATH/bin
+
+export AWS_PROFILE=admin
+# bun completions
+# [ -s "/home/rdmm123/.bun/_bun" ] && source "/home/rdmm123/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
 
 case "$(uname -s)" in
 
