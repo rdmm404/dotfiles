@@ -49,6 +49,7 @@ case ":$PATH:" in
 esac
 # pnpm end
 
+export XDG_CONFIG_HOME="$HOME/.config/"
 
 case "$(uname -s)" in
 
