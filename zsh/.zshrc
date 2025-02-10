@@ -28,6 +28,7 @@ plug "wfxr/forgit"
 bindkey '^ ' autosuggest-accept
 
 export PATH="$HOME/.local/bin":$PATH
+export PATH="$HOME/.cargo/bin":$PATH
 
 if command -v bat &> /dev/null; then
   alias cat="bat -pp --theme \"Visual Studio Dark+\""
@@ -45,4 +46,6 @@ bindkey -M vicmd 'j' history-substring-search-down
 
 bindkey ';5D' backward-word
 bindkey ';5C' forward-word
-. "$HOME/.cargo/env"
+
+WORDCHARS=${WORDCHARS//[\/_.-=]/}
+# . "$HOME/.cargo/env"
