@@ -12,6 +12,9 @@
   "python.venvFolders": [
     "/Users/robert.martinez/Library/Caches/pypoetry/virtualenvs"
   ],
+  "mypy.runUsingActiveInterpreter": true,
+  "editor.formatOnSave": true,
+  "editor.formatOnSaveMode": "modificationsIfAvailable",
   "openInGitHub.useLocalBranch": false,
   "diffEditor.ignoreTrimWhitespace": false,
   "diffEditor.experimental.showMoves": true,
@@ -23,7 +26,6 @@
   "editor.minimap.enabled": false,
   "diffEditor.hideUnchangedRegions.enabled": true,
   "diffEditor.renderSideBySide": true, // Use the local branch instead of the fixed remote branch
-
   "[json][jsonc][javascript][javascriptreact][typescript][typescriptreact]": {
     "editor.tabSize": 2,
     "editor.insertSpaces": true
@@ -66,9 +68,10 @@
       "breadcrumb.background": "#21222c",
     }
   },
-
   // Cusom css
-    "vscode_custom_css.imports": ["file:///Users/rdmm123/.config/vscode/styles.css"],
+  "vscode_custom_css.imports": [
+    "file:///Users/rdmm123/.config/vscode/styles.css"
+  ],
   // "apc.stylesheet": {
   //   // ".sidebar > .composite": "height: 12px !important",
   //   ".title-label": "display: none !important",
@@ -79,8 +82,6 @@
   //   // ".inline-tabs-placeholder": "display: none !important",
   //   // ".split-view-view .visible": "background-color: #110f17 !important"
   // },
-
-
   // Misc
   "workbench.startupEditor": "none",
   "explorer.compactFolders": false,
@@ -92,7 +93,6 @@
   },
   "editor.bracketPairColorization.enabled": true,
   "editor.guides.bracketPairs": false,
-
   // Change font EVERYWHERE
   "editor.fontFamily": "FiraCode Nerd Font",
   "scm.inputFontFamily": "FiraCode Nerd Font",
