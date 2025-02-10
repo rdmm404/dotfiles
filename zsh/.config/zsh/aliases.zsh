@@ -32,8 +32,7 @@ alias pscpu='ps auxf | sort -nr -k 3 | head -5'
 # systemd
 alias mach_list_systemctl="systemctl list-unit-files --state=enabled"
 
-alias mach_java_mode="export SDKMAN_DIR="$HOME/.sdkman" && [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh""
-
+alias lg='lazygit'
 
 case "$(uname -s)" in
 
