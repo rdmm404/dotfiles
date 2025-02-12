@@ -20,7 +20,8 @@ eval "$(fnm env --use-on-cd --shell zsh)"
 # Forgit - git fzf
 [ -f $HOMEBREW_PREFIX/share/forgit/forgit.plugin.zsh ] && source $HOMEBREW_PREFIX/share/forgit/forgit.plugin.zsh
 
-# . "$HOME/.cargo/env"
+. "$HOME/.cargo/env"
+export PATH="$HOME/.cargo/bin":$PATH
 
 # pyenv
 export PYENV_ROOT="$HOME/.pyenv"
