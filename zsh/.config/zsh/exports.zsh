@@ -14,9 +14,6 @@ eval "$(zoxide init zsh --cmd cd)"
 # Set up fzf key bindings and fuzzy completion
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-# fnm
-eval "$(fnm env --use-on-cd --shell zsh)"
-
 # Forgit - git fzf
 [ -f $HOMEBREW_PREFIX/share/forgit/forgit.plugin.zsh ] && source $HOMEBREW_PREFIX/share/forgit/forgit.plugin.zsh
 
@@ -55,6 +52,8 @@ Darwin)
 	# echo 'Mac OS X'
   export DYLD_LIBRARY_PATH=/opt/homebrew/lib/
   export DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib
+  # fnm
+  eval "$(fnm env --use-on-cd --shell zsh)"
 	;;
 
 Linux)
@@ -67,7 +66,12 @@ Linux)
     export LIBGL_ALWAYS_INDIRECT=true
     export LIBGL_ALWAYS_SOFTWARE=true
   fi
-
+  # fnm
+  FNM_PATH="/home/rdmm123/.local/share/fnm"
+  if [ -d "$FNM_PATH" ]; then
+    export PATH="/home/rdmm123/.local/share/fnm:$PATH"
+    eval "`fnm env`"
+  fi
 	;;
 
 CYGWIN* | MINGW32* | MSYS* | MINGW*)

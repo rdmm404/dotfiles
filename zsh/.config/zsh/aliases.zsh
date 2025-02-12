@@ -43,6 +43,7 @@ Darwin)
 
 Linux)
 	alias ls='ls --color=auto'
+	alias ollama='ollama.exe'
 	;;
 
 CYGWIN* | MINGW32* | MSYS* | MINGW*)
