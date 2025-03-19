@@ -6,6 +6,7 @@ export EDITOR="nano"
 export TERMINAL="kitty"
 export PATH="$HOME/.local/bin":$PATH
 export PATH="$HOME/.docker/bin":$PATH
+export PATH="$HOME/bin":$PATH
 export HOMEBREW_NO_ANALYTICS=1
 export HOMEBREW_NO_ENV_HINTS=1
 #export PATH="$PATH:./node_modules/.bin"
@@ -37,12 +38,19 @@ export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
 # pnpm
-export PNPM_HOME="/Users/robert.martinez/Library/pnpm"
+export PNPM_HOME="/Users/$(whoami)/Library/pnpm"
 case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 # pnpm end
+
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f '/Users/$(whoami)/Downloads/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/$(whoami)/Downloads/google-cloud-sdk/path.zsh.inc'; fi
+
+# The next line enables shell command completion for gcloud.
+if [ -f '/Users/$(whoami)/Downloads/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/rdmm123/Downloads/google-cloud-sdk/completion.zsh.inc'; fi
+
 
 export XDG_CONFIG_HOME="$HOME/.config/"
 

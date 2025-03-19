@@ -1,7 +1,5 @@
 {
   "workbench.colorTheme": "Dracula Theme",
-  "workbench.iconTheme": "moxer-icons",
-
 
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
@@ -85,4 +83,13 @@
   "vscode-pets.petSize": "small",
   "vscode-pets.throwBallWithMouse": true,
   "workbench.activityBar.location": "bottom",
+  "[yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }
