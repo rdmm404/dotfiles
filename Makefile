@@ -4,6 +4,7 @@ OS := $(shell uname -s)
 
 # Targets
 stow:
+	mkdir -p ~/.config/zsh/aliases ~/.config/zsh/exports ~/.config/zsh/functions
 	stow */ -t ~
 
 install:
