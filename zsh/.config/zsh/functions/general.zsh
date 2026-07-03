@@ -21,5 +21,5 @@ function ffm_compress() {
 }
 
 function pi() {
-  fnm exec --using=24 -- command pi "$@"
+  fnm exec --using=24 -- pi "$@"
 }
