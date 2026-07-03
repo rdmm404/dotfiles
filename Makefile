@@ -5,6 +5,7 @@ OS := $(shell uname -s)
 # Targets
 stow:
 	mkdir -p ~/.config/zsh/aliases ~/.config/zsh/exports ~/.config/zsh/functions
+	mkdir -p ~/.config/rtk
 	mkdir -p ~/.pi/agent/extensions ~/.pi/agent/themes
 	mkdir -p ~/Library/Application\ Support/rtk
 	stow -R */ -t ~
