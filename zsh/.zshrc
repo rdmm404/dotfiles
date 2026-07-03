@@ -12,8 +12,6 @@ for f in "$HOME"/.config/zsh/exports/*.zsh(N); do
   source "$f"
 done
 
-[ -f "$HOME/.config/zsh/secrets.local.zsh" ] && source "$HOME/.config/zsh/secrets.local.zsh"
-
 for f in "$HOME"/.config/zsh/aliases/*.zsh(N); do
   source "$f"
 done

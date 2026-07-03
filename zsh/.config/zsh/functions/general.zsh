@@ -33,3 +33,7 @@ function ffm_compress() {
 
   ffmpeg -i "$input_path" -c:v libx264 -crf 23 -preset medium -c:a aac -b:a 128k "$output_path"
 }
+
+function pi() {
+  fnm exec --using=24 -- command pi "$@"
+}
