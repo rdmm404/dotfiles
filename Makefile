@@ -5,6 +5,7 @@ OS := $(shell uname -s)
 # Targets
 stow:
 	mkdir -p ~/.config/zsh/aliases ~/.config/zsh/exports ~/.config/zsh/functions
+	mkdir -p ~/.pi/agent/extensions ~/.pi/agent/themes
 	stow -R */ -t ~
 
 doctor:

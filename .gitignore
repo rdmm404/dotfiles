@@ -2,3 +2,14 @@ zsh/.config/zsh/secrets.local.zsh
 zsh/.config/zsh/aliases/*.local.zsh
 zsh/.config/zsh/exports/*.local.zsh
 zsh/.config/zsh/functions/*.local.zsh
+
+# pi: ignore all agent runtime/state, whitelist real config
+pi/.pi/agent/*
+!pi/.pi/agent/AGENTS.md
+!pi/.pi/agent/extensions/
+!pi/.pi/agent/extensions/**
+!pi/.pi/agent/themes/
+!pi/.pi/agent/themes/*.json
+pi/.pi/agent/auth.json
+pi/.pi/agent/trust.json
+pi/.pi/agent/extensions/**/node_modules/
