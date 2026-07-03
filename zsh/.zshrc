@@ -8,9 +8,20 @@
 HISTFILE=~/.zsh_history
 
 # source
-plug "$HOME/.config/zsh/aliases.zsh"
-plug "$HOME/.config/zsh/exports.zsh"
-plug "$HOME/.config/zsh/functions.zsh"
+for f in "$HOME"/.config/zsh/exports/*.zsh(N); do
+  source "$f"
+done
+
+[ -f "$HOME/.config/zsh/secrets.local.zsh" ] && source "$HOME/.config/zsh/secrets.local.zsh"
+
+for f in "$HOME"/.config/zsh/aliases/*.zsh(N); do
+  source "$f"
+done
+
+for f in "$HOME"/.config/zsh/functions/*.zsh(N); do
+  source "$f"
+done
+
 plug "$HOME/.config/zsh/plugins/ssh-agent.zsh"
 
 # plugins

@@ -1,1 +1,4 @@
 zsh/.config/zsh/secrets.local.zsh
+zsh/.config/zsh/aliases/*.local.zsh
+zsh/.config/zsh/exports/*.local.zsh
+zsh/.config/zsh/functions/*.local.zsh
