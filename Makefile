@@ -5,7 +5,13 @@ OS := $(shell uname -s)
 # Targets
 stow:
 	mkdir -p ~/.config/zsh/aliases ~/.config/zsh/exports ~/.config/zsh/functions
-	stow */ -t ~
+	stow -R */ -t ~
+
+doctor:
+	@echo "Checking for broken symlinks under ~ ..."
+	@find ~ -maxdepth 3 -type l ! -exec test -e {} \; -print 2>/dev/null \
+		| sed 's/^/  broken: /' || true
+	@echo "Done."
 
 install:
 ifeq ($(OS), Darwin)
@@ -25,4 +31,4 @@ else
 endif
 	zsh <(curl -s https://raw.githubusercontent.com/zap-zsh/zap/master/install.zsh) --branch release-v1
 
-.PHONY: stow install
+.PHONY: stow doctor install
