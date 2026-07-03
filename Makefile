@@ -6,6 +6,7 @@ OS := $(shell uname -s)
 stow:
 	mkdir -p ~/.config/zsh/aliases ~/.config/zsh/exports ~/.config/zsh/functions
 	mkdir -p ~/.pi/agent/extensions ~/.pi/agent/themes
+	mkdir -p ~/Library/Application\ Support/rtk
 	stow -R */ -t ~
 
 doctor:
