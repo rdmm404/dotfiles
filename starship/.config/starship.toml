@@ -89,6 +89,7 @@ symbol = "⎈ "
 format = "on [$symbol$context( \\($namespace\\))]($style) "
 disabled = false
 detect_files = ["Tiltfile", "PFA_PR_Checklist.md"]
+detect_folders = ["deployments"]
 
 [[kubernetes.contexts]]
 context_pattern = "gke_.*_(?P<cluster>[\\w-]+)"

@@ -10,3 +10,6 @@ split-divider-color = #bd93f9
 
 window-padding-x = 15
 window-padding-y = 10
+keybind = shift+enter=text:\n
+
+desktop-notifications = true
