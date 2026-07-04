@@ -18,9 +18,6 @@ eval "$(zoxide init zsh --cmd cd)"
 # Forgit - git fzf
 [ -f $HOMEBREW_PREFIX/share/forgit/forgit.plugin.zsh ] && source $HOMEBREW_PREFIX/share/forgit/forgit.plugin.zsh
 
-. "$HOME/.cargo/env"
-export PATH="$HOME/.cargo/bin":$PATH
-
 export GOPATH=$HOME/go
 export PATH=$PATH:$GOPATH/bin
 
@@ -40,8 +37,13 @@ if [ -f '/Users/$(whoami)/Downloads/google-cloud-sdk/completion.zsh.inc' ]; then
 
 export XDG_CONFIG_HOME="$HOME/.config/"
 
-# Pi
-export PATH="/home/rdmm123/.local/share/fnm/node-versions/v24.18.0/installation/bin:$PATH"
+export PATH="/usr/local/opt/mysql-client/bin:$PATH"
+
+# opencode
+export PATH=/Users/rdmm123/.opencode/bin:$PATH
+
+# Added by Antigravity
+export PATH="/Users/rdmm123/.antigravity/antigravity/bin:$PATH"
 
 case "$(uname -s)" in
 

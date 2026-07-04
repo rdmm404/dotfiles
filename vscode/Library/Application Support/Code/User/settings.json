@@ -5,14 +5,15 @@
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.rulers": [
       {
-        "column": 100
-      }
-    ]
+        "column": 100,
+      },
+    ],
   },
   "python.venvFolders": [
-    "/Users/robert.martinez/Library/Caches/pypoetry/virtualenvs"
+    "/Users/robert.martinez/Library/Caches/pypoetry/virtualenvs",
   ],
-  "mypy.runUsingActiveInterpreter": true,
+  "python.analysis.typeCheckingMode": "standard",
+  "python.analysis.typeEvaluation.deprecateTypingAliases": true,
   "editor.formatOnSave": true,
   "editor.formatOnSaveMode": "modificationsIfAvailable",
   "openInGitHub.useLocalBranch": false,
@@ -29,10 +30,10 @@
     "editor.insertSpaces": true,
     "editor.rulers": [
       {
-        "column": 120
-      }
+        "column": 120,
+      },
     ],
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
   },
   // SETINGS TAKEN FROM https://gist.github.com/ixahmedxi/b9a5a9105bfa39b72b914d9c56bb1cf3
   // ui
@@ -49,12 +50,12 @@
       "editorGroupHeader.tabsBackground": "#21222c",
       "tab.activeBackground": "#21222c",
       "tab.inactiveBackground": "#21222c",
-      "breadcrumb.background": "#21222c"
-    }
+      "breadcrumb.background": "#21222c",
+    },
   },
   // Cusom css
   "vscode_custom_css.imports": [
-    "file:///Users/rdmm123/.config/vscode/styles.css"
+    "file:///Users/rdmm123/.config/vscode/styles.css",
   ],
   // Misc
   "workbench.startupEditor": "none",
@@ -63,7 +64,7 @@
   "breadcrumbs.filePath": "on",
   "files.trimTrailingWhitespace": true,
   "[markdown]": {
-    "files.trimTrailingWhitespace": false
+    "files.trimTrailingWhitespace": false,
   },
   "editor.bracketPairColorization.enabled": true,
   "editor.guides.bracketPairs": false,
@@ -84,12 +85,38 @@
   "vscode-pets.throwBallWithMouse": true,
   "workbench.activityBar.location": "bottom",
   "[yaml]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
   },
   "[html]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
   },
   "[css]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+  },
+  "docker.extension.enableComposeLanguageServer": false,
+  "git.confirmSync": false,
+  "github.copilot.enable": {
+    "*": true,
+    "plaintext": false,
+    "markdown": false,
+    "scminput": false,
+    "go": false,
+  },
+  "go.toolsManagement.autoUpdate": true,
+  "[dockercompose]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2,
+    "editor.autoIndent": "advanced",
+    "editor.quickSuggestions": {
+      "other": true,
+      "comments": false,
+      "strings": true,
+    },
+    "editor.defaultFormatter": "redhat.vscode-yaml",
+  },
+  "[github-actions-workflow]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml",
+  },
+  "chat.viewSessions.orientation": "stacked",
+  "security.promptForRemoteFileProtocolHandling": false,
 }
