@@ -13,6 +13,10 @@ Prefer test-driven development for every public behavior:
 
 Avoid unit-testing private functions. Test `dot` through its public commands, temporary home directories, real Stow, and fake package-manager commands. Use real machines and the Omarchy VM only for checks that cannot be faked safely.
 
+## Code & testing thoroughness
+
+Follow the green thread: plan, confirm, change, and verify. Keep the code and tests focused on the main supported path and the important safety rules. We do not need tests for every possible combination of unusual inputs, timing, or hostile filesystem changes. Add more edge-case coverage when a real bug, a requirement, or a supported use case needs it.
+
 ## Phase 1: Build the foundation
 
 ### Work

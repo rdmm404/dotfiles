@@ -56,16 +56,25 @@ run_dot() {
   else
     test_platform="${DOT_PLATFORM:-wsl}"
   fi
+  test_path="$TEST_BIN:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+  test_stow_command="${TEST_STOW_COMMAND:-${REAL_STOW:-$(command -v stow)}}"
+  if [ "${TEST_REAL_STOW:-0}" = 1 ]; then
+    if [ "${TEST_KEEP_STOW:-0}" = 1 ]; then
+      test_stow_command="$TEST_BIN/stow"
+    else
+      rm -f "$TEST_BIN/stow"
+    fi
+  fi
   if [ "${TEST_NO_INPUT:-0}" = 1 ]; then
     HOME="$TEST_HOME" DOT_ROOT="$TEST_ROOT" DOT_PLATFORM="$test_platform" \
       WSL_DISTRO_NAME="${WSL_DISTRO_NAME:-test-wsl}" DOT_NO_SUDO=1 \
       FAKE_LOG="$TEST_TMP/commands" FAKE_INSTALLED="$TEST_TMP/installed" FAKE_BIN="$TEST_BIN" \
-      PATH="$TEST_BIN" /bin/bash "$TEST_ROOT/dot" "$@" </dev/null >"$TEST_OUTPUT" 2>"$TEST_ERROR"
+      STOW_COMMAND="$test_stow_command" REAL_STOW="${REAL_STOW:-$(command -v stow)}" PATH="$test_path" /bin/bash "$TEST_ROOT/dot" "$@" </dev/null >"$TEST_OUTPUT" 2>"$TEST_ERROR"
   else
     HOME="$TEST_HOME" DOT_ROOT="$TEST_ROOT" DOT_PLATFORM="$test_platform" \
       WSL_DISTRO_NAME="${WSL_DISTRO_NAME:-test-wsl}" DOT_NO_SUDO=1 \
       FAKE_LOG="$TEST_TMP/commands" FAKE_INSTALLED="$TEST_TMP/installed" FAKE_BIN="$TEST_BIN" \
-      PATH="$TEST_BIN" /bin/bash "$TEST_ROOT/dot" "$@" >"$TEST_OUTPUT" 2>"$TEST_ERROR"
+      STOW_COMMAND="$test_stow_command" REAL_STOW="${REAL_STOW:-$(command -v stow)}" PATH="$test_path" /bin/bash "$TEST_ROOT/dot" "$@" >"$TEST_OUTPUT" 2>"$TEST_ERROR"
   fi
 }
 

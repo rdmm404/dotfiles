@@ -105,6 +105,32 @@ EOF
   dot_skip 'canonical-link checks deferred until configuration restructuring'
 }
 
+doctor_check_deployment() {
+  deploy_prepare || {
+    DOCTOR_PROBLEMS=$((DOCTOR_PROBLEMS + 1))
+    return 0
+  }
+  deploy_build_plan || {
+    DOCTOR_PROBLEMS=$((DOCTOR_PROBLEMS + 1))
+    return 0
+  }
+  doctor_deploy_conflict=''
+  while IFS= read -r doctor_deploy_conflict || [ -n "$doctor_deploy_conflict" ]; do
+    [ -z "$doctor_deploy_conflict" ] && continue
+    if [ "${DOCTOR_FOR_BOOTSTRAP:-0}" = 1 ]; then
+      dot_warn "deployment conflict: $(deploy_display_path "$doctor_deploy_conflict")"
+    else
+      dot_error "deployment conflict: $(deploy_display_path "$doctor_deploy_conflict")"
+      DOCTOR_PROBLEMS=$((DOCTOR_PROBLEMS + 1))
+    fi
+  done <<EOF
+$DEPLOY_CONFLICTS
+EOF
+  if [ -z "$DEPLOY_CONFLICTS" ]; then
+    dot_ok 'configuration deployment has no conflicts'
+  fi
+}
+
 doctor_check_apps() {
   doctor_manifest=''
   doctor_entry=''
@@ -134,9 +160,11 @@ EOF
 doctor_command() {
   DOCTOR_PROBLEMS=0
   DOCTOR_ALLOW_MISSING=0
+  DOCTOR_FOR_BOOTSTRAP=0
   if [ "${1:-}" = --for-bootstrap ]; then
     shift
     DOCTOR_ALLOW_MISSING=1
+    DOCTOR_FOR_BOOTSTRAP=1
   fi
   [ "$#" = 0 ] || { dot_error "invalid doctor argument: $1"; return 2; }
   platform_detect || return 1
@@ -160,7 +188,9 @@ doctor_command() {
   fi
 
   for doctor_required in bash stow; do
-    if command -v "$doctor_required" >/dev/null 2>&1; then
+    doctor_command_name="$doctor_required"
+    [ "$doctor_required" = stow ] && doctor_command_name="${STOW_COMMAND:-stow}"
+    if command -v "$doctor_command_name" >/dev/null 2>&1; then
       dot_ok "required command: $doctor_required"
     else
       if [ "$doctor_required" = stow ] && [ "${DOCTOR_ALLOW_MISSING:-0}" = 1 ]; then
@@ -178,6 +208,7 @@ doctor_command() {
 
   doctor_check_syntax
   doctor_check_fast_checks
+  doctor_check_deployment
   if [ "$doctor_manifests_valid" = 1 ]; then
     doctor_check_apps
   fi

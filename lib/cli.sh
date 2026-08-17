@@ -29,7 +29,10 @@ Commands:
   doctor                         Check repository and system readiness
   plan [--include optional]     Show the installation plan
   install [options]              Install missing applications
-  bootstrap [options]            Install and show the future deploy step
+  bootstrap [options]            Install and deploy configuration
+  deploy [options]               Link configuration into HOME
+  undeploy [--yes]               Remove repository-owned links
+  backups <list|restore|remove|prune> Manage adoption backups
   help [command]                 Show help
 
 Options for install and bootstrap:
@@ -66,10 +69,35 @@ EOF
     bootstrap)
       cat <<'EOF'
 Usage: dot bootstrap [--include optional] [--yes]
-Run readiness checks, install missing applications, and plan deployment.
-Deployment is deferred until Phase 2.
+Install missing applications and deploy configuration after one confirmation.
+Existing conflicts stop bootstrap; use dot deploy --adopt separately.
 Example: dot bootstrap --yes
 EOF
+      ;;
+    deploy)
+      cat <<'EOF'
+Usage: dot deploy [--adopt] [--yes]
+Link global and current-platform configuration into HOME.
+--adopt backs up conflicts before replacing them; it never uses Stow --adopt.
+EOF
+      ;;
+    undeploy)
+      cat <<'EOF'
+Usage: dot undeploy [--yes]
+Remove only links owned by the global and current-platform layers.
+EOF
+      ;;
+    backups)
+      cat <<'EOF'
+Usage: dot backups <list|restore|remove|prune> [options]
+  list
+  restore <timestamp> [--yes]
+  remove <timestamp> [--yes]
+  prune --older-than <days>d [--yes]
+EOF
+      ;;
+    'backups list'|'backups restore'|'backups remove'|'backups prune')
+      dot_command_usage backups
       ;;
     *)
       dot_usage

@@ -83,9 +83,51 @@ bootstrap_readiness_test() {
   printf '%s\n' 'stow' > "$TEST_ROOT/manifests/core"
   printf '%s\n' 'git' > "$TEST_ROOT/manifests/development"
   run_dot bootstrap --yes || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
-  assert_contains "$TEST_OUTPUT" 'configuration deployment is deferred until Phase 2' || { cleanup_fixture; return 1; }
+  assert_contains "$TEST_OUTPUT" 'no configuration links to deploy' || { cleanup_fixture; return 1; }
   assert_not_contains "$TEST_TMP/commands" 'apt-get install' || { cleanup_fixture; return 1; }
   cleanup_fixture
 }
 
-platform_test && planning_is_read_only_test && install_choice_test && repeat_install_test && optional_plan_test && invalid_argument_test && cancel_test && doctor_test && bootstrap_readiness_test
+bootstrap_missing_stow_test() {
+  make_fixture || return 1
+  mkdir -p "$TEST_ROOT/global/.config" "$TEST_ROOT/platforms/wsl/.config"
+  printf 'shared\n' > "$TEST_ROOT/global/.config/shared"
+  printf '%s\n' 'stow' > "$TEST_ROOT/manifests/core"
+  printf '%s\n' '# empty' > "$TEST_ROOT/manifests/development"
+  cat > "$TEST_BIN/apt-get" <<'EOF'
+#!/bin/bash
+pkg=''
+for arg in "$@"; do pkg="$arg"; done
+printf 'apt-get %s\n' "$*" >> "${FAKE_LOG:?}"
+printf '%s\n' "$pkg" >> "${FAKE_INSTALLED:?}"
+if [ "$pkg" = stow ]; then
+  cp "$REAL_STOW" "$FAKE_BIN/missing-stow"
+  chmod +x "$FAKE_BIN/missing-stow"
+fi
+EOF
+  chmod +x "$TEST_BIN/apt-get"
+  TEST_STOW_COMMAND=missing-stow TEST_REAL_STOW=1 run_dot bootstrap --yes || { cat "$TEST_OUTPUT"; cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
+  [ -L "$TEST_HOME/.config/shared" ] || { cleanup_fixture; fail 'bootstrap did not deploy after installing Stow'; return 1; }
+  assert_contains "$TEST_OUTPUT" 'required command will be installed: stow' || { cleanup_fixture; return 1; }
+  cleanup_fixture
+}
+
+bootstrap_conflict_plan_test() {
+  make_fixture || return 1
+  mkdir -p "$TEST_ROOT/global/.config" "$TEST_HOME/.config"
+  printf 'shared\n' > "$TEST_ROOT/global/.config/shared"
+  printf 'keep\n' > "$TEST_HOME/.config/shared"
+  printf '%s\n' 'stow' > "$TEST_ROOT/manifests/core"
+  printf '%s\n' '# empty' > "$TEST_ROOT/manifests/development"
+  if TEST_STOW_COMMAND=missing-stow run_dot bootstrap --yes; then
+    cleanup_fixture
+    fail 'bootstrap conflict unexpectedly succeeded'
+    return 1
+  fi
+  assert_contains "$TEST_OUTPUT" 'will install: stow' || { cleanup_fixture; return 1; }
+  assert_contains "$TEST_OUTPUT" 'existing file: ~/.config/shared' || { cleanup_fixture; return 1; }
+  [ ! -e "$TEST_TMP/commands" ] || { cleanup_fixture; fail 'bootstrap installed before resolving conflict'; return 1; }
+  cleanup_fixture
+}
+
+platform_test && planning_is_read_only_test && install_choice_test && repeat_install_test && optional_plan_test && invalid_argument_test && cancel_test && doctor_test && bootstrap_readiness_test && bootstrap_missing_stow_test && bootstrap_conflict_plan_test

@@ -138,19 +138,42 @@ bootstrap_command() {
   include_optional="${1:-0}"
   DOT_YES="${2:-0}"
   DOCTOR_ALLOW_MISSING=1
+  DEPLOY_ALLOW_MISSING_STOW=1
   doctor_command --for-bootstrap || return 1
   install_prepare "$include_optional" || return 1
   install_print_header "$include_optional"
   install_plan || return 1
-  dot_plan 'configuration deployment is deferred until Phase 2'
-  if [ "$INSTALL_MISSING_COUNT" = 0 ]; then
-    dot_ok 'nothing to install; no deployment performed'
-    return 0
+  deploy_prepare || return 1
+  deploy_build_plan || return 1
+  deploy_print_plan
+  if [ -n "$DEPLOY_CONFLICTS" ]; then
+    dot_error 'bootstrap stopped; resolve deployment conflicts before installing'
+    return 1
   fi
   if ! dot_confirm; then
     dot_warn 'bootstrap cancelled'
     return 1
   fi
+  BOOTSTRAP_PLAN_LAYERS="$DEPLOY_ACTIVE_LAYERS"
+  BOOTSTRAP_PLAN_TARGETS="$DEPLOY_TARGETS"
+  BOOTSTRAP_PLAN_RECORDS="$DEPLOY_ENTRY_RECORDS"
+  BOOTSTRAP_PLAN_CONFLICTS="$DEPLOY_CONFLICTS"
   install_execute || return 1
-  dot_ok 'bootstrap installation complete; run dot deploy after Phase 2 is implemented'
+  # Installation can change HOME and can install Stow, so rebuild the plan
+  # before any deployment and refuse to use stale targets.
+  DEPLOY_ALLOW_MISSING_STOW=0
+  deploy_prepare || return 1
+  deploy_build_plan || return 1
+  if [ "$DEPLOY_ACTIVE_LAYERS" != "$BOOTSTRAP_PLAN_LAYERS" ] || \
+    [ "$DEPLOY_TARGETS" != "$BOOTSTRAP_PLAN_TARGETS" ] || \
+    [ "$DEPLOY_ENTRY_RECORDS" != "$BOOTSTRAP_PLAN_RECORDS" ] || \
+    [ "$DEPLOY_CONFLICTS" != "$BOOTSTRAP_PLAN_CONFLICTS" ]; then
+    dot_error 'bootstrap deployment plan changed during installation; no deployment performed'
+    return 1
+  fi
+  # The combined confirmation above is also the deploy confirmation. Bootstrap
+  # never enables adoption, even when the plan contains conflicts.
+  deploy_execute 0 1 1 || return 1
+  doctor_command || return 1
+  dot_ok 'bootstrap complete'
 }

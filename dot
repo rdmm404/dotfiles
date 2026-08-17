@@ -8,6 +8,8 @@ export DOT_ROOT
 . "$DOT_ROOT/lib/apps.sh" || exit 1
 . "$DOT_ROOT/lib/manifest.sh" || exit 1
 . "$DOT_ROOT/lib/install.sh" || exit 1
+. "$DOT_ROOT/lib/backups.sh" || exit 1
+. "$DOT_ROOT/lib/deploy.sh" || exit 1
 . "$DOT_ROOT/lib/doctor.sh" || exit 1
 
 plan_command() {
@@ -34,7 +36,7 @@ plan_command() {
   install_prepare "$include_optional" || return 1
   install_print_header "$include_optional"
   install_plan || return 1
-  dot_plan 'configuration layers: global -> current platform (deployment is Phase 2)'
+  deploy_plan_command || return 1
 }
 
 install_command_with_args() {
@@ -63,6 +65,48 @@ install_command_with_args() {
     esac
   done
   install_command "$include_optional" "$yes"
+}
+
+deploy_command_with_args() {
+  deploy_command "$@"
+}
+
+undeploy_command_with_args() {
+  yes=0
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --yes) yes=1; shift ;;
+      --help|-h) dot_command_usage undeploy; return 0 ;;
+      *) dot_bad_args "invalid argument: $1" undeploy; return $? ;;
+    esac
+  done
+  deploy_undeploy_command "$yes"
+}
+
+backups_command_with_args() {
+  [ "$#" -gt 0 ] || { dot_bad_args 'missing backups subcommand' backups; return $?; }
+  backups_subcommand="$1"
+  shift
+  case "$backups_subcommand" in
+    list)
+      [ "$#" = 0 ] || { dot_bad_args "invalid argument: $1" 'backups list'; return $?; }
+      backups_list_command
+      ;;
+    restore)
+      [ "$#" -gt 0 ] || { dot_bad_args 'missing backup timestamp' 'backups restore'; return $?; }
+      backups_restore_command "$@"
+      ;;
+    remove)
+      [ "$#" -gt 0 ] || { dot_bad_args 'missing backup timestamp' 'backups remove'; return $?; }
+      backups_remove_command "$@"
+      ;;
+    prune)
+      backups_prune_command "$@"
+      ;;
+    *)
+      dot_bad_args "unknown backups subcommand: $backups_subcommand" backups
+      ;;
+  esac
 }
 
 bootstrap_command_with_args() {
@@ -117,6 +161,18 @@ case "${1:-help}" in
   bootstrap)
     shift
     bootstrap_command_with_args "$@"
+    ;;
+  deploy)
+    shift
+    deploy_command_with_args "$@"
+    ;;
+  undeploy)
+    shift
+    undeploy_command_with_args "$@"
+    ;;
+  backups)
+    shift
+    backups_command_with_args "$@"
     ;;
   *)
     dot_error "unknown command: $1"

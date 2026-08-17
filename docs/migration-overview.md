@@ -190,6 +190,10 @@ git-open
 - Keep fast checks for Bash and Zsh syntax, ShellCheck, manifests, config parsing, links, and unwanted absolute paths.
 - Use real WSL and macOS smoke tests plus the Omarchy VM checklist for behavior that cannot be safely faked.
 
+### Code & testing thoroughness
+
+Follow the green thread: plan, confirm, change, and verify. Keep the code and tests focused on the main supported path and the important safety rules. We do not need tests for every possible combination of unusual inputs, timing, or hostile filesystem changes. Add more edge-case coverage when a real bug, a requirement, or a supported use case needs it.
+
 ## Acceptance criteria
 
 The migration is ready for the physical Omarchy machine when:

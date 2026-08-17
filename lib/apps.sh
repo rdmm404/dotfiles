@@ -17,6 +17,7 @@ app_known() {
 
 app_command() {
   case "$1" in
+    stow) printf '%s' "${STOW_COMMAND:-stow}" ;;
     vscode) printf 'code' ;;
     nerd-font) printf '' ;;
     *) printf '%s' "$1" ;;
