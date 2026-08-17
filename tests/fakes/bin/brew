@@ -1,0 +1,26 @@
+#!/bin/bash
+printf 'brew %s\n' "$*" >> "${FAKE_LOG:?}"
+case "$1" in
+  list)
+    pkg=''
+    for arg in "$@"; do pkg="$arg"; done
+    while IFS= read -r installed || [ -n "$installed" ]; do
+      [ "$installed" = "$pkg" ] && exit 0
+    done < "${FAKE_INSTALLED:?}"
+    exit 1
+    ;;
+  install)
+    pkg=''
+    for arg in "$@"; do pkg="$arg"; done
+    printf '%s\n' "$pkg" >> "${FAKE_INSTALLED:?}"
+    case "$pkg" in
+      ripgrep) app=rg ;;
+      visual-studio-code) app=code ;;
+      *) app="$pkg" ;;
+    esac
+    : > "$FAKE_BIN/$app"
+    chmod +x "$FAKE_BIN/$app"
+    exit 0
+    ;;
+esac
+exit 1

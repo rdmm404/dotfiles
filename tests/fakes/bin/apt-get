@@ -1,0 +1,10 @@
+#!/bin/bash
+pkg=''
+for arg in "$@"; do pkg="$arg"; done
+printf 'apt-get %s\n' "$*" >> "${FAKE_LOG:?}"
+printf '%s\n' "$pkg" >> "${FAKE_INSTALLED:?}"
+if [ "$pkg" = bat ]; then
+  : > "$FAKE_BIN/batcat"
+  chmod +x "$FAKE_BIN/batcat"
+fi
+exit 0

@@ -1,0 +1,12 @@
+#!/bin/bash
+app=''
+for arg in "$@"; do app="$arg"; done
+printf 'omarchy-install %s\n' "$*" >> "${FAKE_LOG:?}"
+printf '%s\n' "$app" >> "${FAKE_INSTALLED:?}"
+case "$app" in
+  vscode) command_name=code ;;
+  *) command_name="$app" ;;
+esac
+: > "$FAKE_BIN/$command_name"
+chmod +x "$FAKE_BIN/$command_name"
+exit 0

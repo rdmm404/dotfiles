@@ -1,0 +1,2 @@
+#!/bin/bash
+printf '%s  %s\n' f73fe83a252da7c0a67d18ebe42e6c54d34f1d8b4438a891c0f6453417814579 "$3"

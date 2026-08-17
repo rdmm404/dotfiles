@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+
+DOT_ROOT=${DOT_ROOT:-$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)}
+export DOT_ROOT
+
+. "$DOT_ROOT/lib/cli.sh" || exit 1
+. "$DOT_ROOT/lib/platform.sh" || exit 1
+. "$DOT_ROOT/lib/apps.sh" || exit 1
+. "$DOT_ROOT/lib/manifest.sh" || exit 1
+. "$DOT_ROOT/lib/install.sh" || exit 1
+. "$DOT_ROOT/lib/doctor.sh" || exit 1
+
+plan_command() {
+  include_optional=0
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --include)
+        [ "$#" -ge 2 ] || { dot_bad_args 'missing value for --include' plan; return $?; }
+        [ "$2" = optional ] || { dot_bad_args "unsupported include value: $2" plan; return $?; }
+        include_optional=1
+        shift 2
+        ;;
+      --help|-h)
+        dot_command_usage plan
+        return 0
+        ;;
+      *)
+        dot_bad_args "invalid argument: $1" plan
+        return $?
+        ;;
+    esac
+  done
+
+  install_prepare "$include_optional" || return 1
+  install_print_header "$include_optional"
+  install_plan || return 1
+  dot_plan 'configuration layers: global -> current platform (deployment is Phase 2)'
+}
+
+install_command_with_args() {
+  include_optional=0
+  yes=0
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --include)
+        [ "$#" -ge 2 ] || { dot_bad_args 'missing value for --include' install; return $?; }
+        [ "$2" = optional ] || { dot_bad_args "unsupported include value: $2" install; return $?; }
+        include_optional=1
+        shift 2
+        ;;
+      --yes)
+        yes=1
+        shift
+        ;;
+      --help|-h)
+        dot_command_usage install
+        return 0
+        ;;
+      *)
+        dot_bad_args "invalid argument: $1" install
+        return $?
+        ;;
+    esac
+  done
+  install_command "$include_optional" "$yes"
+}
+
+bootstrap_command_with_args() {
+  include_optional=0
+  yes=0
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --include)
+        [ "$#" -ge 2 ] || { dot_bad_args 'missing value for --include' bootstrap; return $?; }
+        [ "$2" = optional ] || { dot_bad_args "unsupported include value: $2" bootstrap; return $?; }
+        include_optional=1
+        shift 2
+        ;;
+      --yes)
+        yes=1
+        shift
+        ;;
+      --help|-h)
+        dot_command_usage bootstrap
+        return 0
+        ;;
+      *)
+        dot_bad_args "invalid argument: $1" bootstrap
+        return $?
+        ;;
+    esac
+  done
+  bootstrap_command "$include_optional" "$yes"
+}
+
+case "${1:-help}" in
+  help|--help|-h)
+    if [ "$#" -gt 1 ]; then
+      dot_command_usage "$2"
+    else
+      dot_usage
+    fi
+    ;;
+  doctor)
+    shift
+    [ "$#" = 0 ] || dot_bad_args "invalid argument: $1" doctor || exit $?
+    doctor_command
+    ;;
+  plan)
+    shift
+    plan_command "$@"
+    ;;
+  install)
+    shift
+    install_command_with_args "$@"
+    ;;
+  bootstrap)
+    shift
+    bootstrap_command_with_args "$@"
+    ;;
+  *)
+    dot_error "unknown command: $1"
+    dot_usage >&2
+    exit 2
+    ;;
+esac

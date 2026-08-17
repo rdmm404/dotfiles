@@ -1,0 +1,3 @@
+#!/bin/bash
+printf 'git %s\n' "$*" >> "${FAKE_LOG:?}"
+exit 0

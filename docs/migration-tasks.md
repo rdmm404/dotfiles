@@ -9,85 +9,85 @@ The checkboxes are grouped by topic, not strict implementation order. For each p
 - [ ] Write a small test that uses the public `dot` command.
 - [ ] Run it and confirm it fails for the expected reason.
 - [ ] Add the smallest change that makes it pass.
-- [ ] Run all fast tests.
-- [ ] Clean up while the tests remain green.
+- [x] Run all fast tests.
+- [x] Clean up while the tests remain green.
 
 Testing rules:
 
-- [ ] Prefer command and filesystem tests over unit tests of private functions.
-- [ ] Use a temporary `HOME` for every file-changing automated test.
+- [x] Prefer command and filesystem tests over unit tests of private functions.
+- [x] Use a temporary `HOME` for every file-changing automated test.
 - [ ] Use real Stow in deployment tests.
-- [ ] Put recording fakes first in `PATH` for Homebrew, Pacman, and Omarchy commands.
-- [ ] Never install real software from the automated suite.
+- [x] Put recording fakes first in `PATH` for Homebrew, Pacman, and Omarchy commands.
+- [x] Never install real software from the automated suite.
 - [ ] Assert exit status, resulting files and links, backup contents, and key output lines.
-- [ ] Do not compare complete output snapshots.
-- [ ] Reserve real installation and desktop checks for platform smoke tests and the Omarchy VM.
+- [x] Do not compare complete output snapshots.
+- [x] Reserve real installation and desktop checks for platform smoke tests and the Omarchy VM.
 
 ## Phase 1: Build the foundation
 
 ### Command structure
 
-- [ ] Add the root-level `dot` command.
-- [ ] Add `lib/cli.sh` for help, prompts, and common output.
-- [ ] Add `lib/platform.sh` for macOS, WSL, and Omarchy detection.
-- [ ] Add `lib/manifest.sh` for loading and checking plain-text manifests.
-- [ ] Add `lib/install.sh` for shared install planning and flow.
-- [ ] Add `lib/doctor.sh` for system and repository checks.
-- [ ] Keep all shell code compatible with Bash 3.2.
-- [ ] Add command-specific help and invalid-argument errors.
-- [ ] Add consistent `[plan]`, `[ok]`, `[skip]`, `[warn]`, and `[error]` output.
+- [x] Add the root-level `dot` command.
+- [x] Add `lib/cli.sh` for help, prompts, and common output.
+- [x] Add `lib/platform.sh` for macOS, WSL, and Omarchy detection.
+- [x] Add `lib/manifest.sh` for loading and checking plain-text manifests.
+- [x] Add `lib/install.sh` for shared install planning and flow.
+- [x] Add `lib/doctor.sh` for system and repository checks.
+- [x] Keep all shell code compatible with Bash 3.2.
+- [x] Add command-specific help and invalid-argument errors.
+- [x] Add consistent `[plan]`, `[ok]`, `[skip]`, `[warn]`, and `[error]` output.
 
 ### Application manifests
 
-- [ ] Add `manifests/core`.
-- [ ] Add `manifests/development`.
-- [ ] Add `manifests/optional`.
-- [ ] Add the agreed core application IDs.
-- [ ] Add the agreed development application IDs.
-- [ ] Reject duplicate or unknown manifest entries.
+- [x] Add `manifests/core`.
+- [x] Add `manifests/development`.
+- [x] Add `manifests/optional`.
+- [x] Add the agreed core application IDs.
+- [x] Add the agreed development application IDs.
+- [x] Reject duplicate or unknown manifest entries.
 
 ### Platform installers
 
-- [ ] Add `installers/macos.sh`.
-- [ ] Add `installers/wsl.sh`.
-- [ ] Add `installers/omarchy.sh`.
-- [ ] Define how every application ID reports installed, missing, or unsupported.
-- [ ] Map macOS applications to Homebrew where appropriate.
-- [ ] Make the macOS `zsh` mapping check and install Zap as its shell foundation.
-- [ ] Map WSL applications to its native package tools.
-- [ ] Make the WSL `zsh` mapping check and install Zap as its shell foundation.
-- [ ] Prefer supported `omarchy-*` commands on Omarchy.
-- [ ] Make the Omarchy `zsh` mapping install and configure `omarchy-zsh`.
-- [ ] Fall back to Arch package tools only when Omarchy has no setup command.
+- [x] Add `installers/macos.sh`.
+- [x] Add `installers/wsl.sh`.
+- [x] Add `installers/omarchy.sh`.
+- [x] Define how every application ID reports installed, missing, or unsupported.
+- [x] Map macOS applications to Homebrew where appropriate.
+- [x] Make the macOS `zsh` mapping check and install Zap as its shell foundation.
+- [x] Map WSL applications to its native package tools.
+- [x] Make the WSL `zsh` mapping check and install Zap as its shell foundation.
+- [x] Prefer supported `omarchy-*` commands on Omarchy.
+- [x] Make the Omarchy `zsh` mapping install and configure `omarchy-zsh`.
+- [x] Fall back to Arch package tools only when Omarchy has no setup command.
 
 ### Commands
 
-- [ ] Implement `dot doctor`.
-- [ ] Implement `dot plan`.
-- [ ] Implement `dot install`.
-- [ ] Implement `dot bootstrap` planning without deployment.
-- [ ] Add `--include optional`.
-- [ ] Add `--yes` without allowing it to imply adoption.
-- [ ] Ensure install skips existing applications and never upgrades them.
+- [x] Implement `dot doctor`.
+- [x] Implement `dot plan`.
+- [x] Implement `dot install`.
+- [x] Implement `dot bootstrap` planning without deployment.
+- [x] Add `--include optional`.
+- [x] Add `--yes` without allowing it to imply adoption.
+- [x] Ensure install skips existing applications and never upgrades them.
 
 ### Test foundation and first TDD cycles
 
-- [ ] Add a small Bash test runner at `tests/run` before implementing command behavior.
-- [ ] Add temporary-home and assertion helpers.
-- [ ] Add recording package-manager fakes under `tests/fakes/bin/`.
-- [ ] Write a failing public-command test for platform detection, then implement it.
-- [ ] Write failing public-command tests for blank lines and comments in manifests, then implement them.
-- [ ] Write failing public-command tests for duplicate and unknown entries, then implement them.
-- [ ] Write failing public-command tests for installed, missing, and unsupported plans, then implement them.
-- [ ] Test that planning does not modify the system.
-- [ ] Run Bash and Zsh syntax checks.
-- [ ] Run ShellCheck where available.
-- [ ] Check config parsing, canonical links, and unwanted absolute paths.
+- [x] Add a small Bash test runner at `tests/run` before implementing command behavior.
+- [x] Add temporary-home and assertion helpers.
+- [x] Add recording package-manager fakes under `tests/fakes/bin/`.
+- [x] Write a failing public-command test for platform detection, then implement it.
+- [x] Write failing public-command tests for blank lines and comments in manifests, then implement them.
+- [x] Write failing public-command tests for duplicate and unknown entries, then implement them.
+- [x] Write failing public-command tests for installed, missing, and unsupported plans, then implement them.
+- [x] Test that planning does not modify the system.
+- [x] Run Bash and Zsh syntax checks.
+- [x] Run ShellCheck where available.
+- [x] Check config parsing, canonical links, and unwanted absolute paths.
 
 ### Phase exit
 
-- [ ] Confirm `dot help`, `doctor`, `plan`, and install planning work on WSL.
-- [ ] Confirm all tests use temporary paths and leave the real home directory alone.
+- [x] Confirm `dot help`, `doctor`, `plan`, and install planning work on WSL.
+- [x] Confirm all tests use temporary paths and leave the real home directory alone.
 
 ## Phase 2: Add safe deployment
 

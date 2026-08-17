@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+TEST_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+status=0
+for test_file in "$TEST_DIR"/*_test.sh; do
+  [ -f "$test_file" ] || continue
+  printf '==> %s\n' "${test_file##*/}"
+  if bash "$test_file"; then
+    printf 'PASS %s\n' "${test_file##*/}"
+  else
+    status=1
+    printf 'FAIL %s\n' "${test_file##*/}" >&2
+  fi
+done
+exit "$status"

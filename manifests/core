@@ -1,0 +1,14 @@
+# Shared command-line foundation
+stow
+zsh
+starship
+zoxide
+fzf
+fd
+rg
+bat
+eza
+nerd-font
+zsh-autosuggestions
+zsh-autopair
+zsh-history-substring-search

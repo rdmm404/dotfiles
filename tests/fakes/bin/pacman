@@ -1,0 +1,17 @@
+#!/bin/bash
+app=''
+printf 'pacman %s\n' "$*" >> "${FAKE_LOG:?}"
+case "$1" in
+  -Q) exit 1 ;;
+  *)
+    for arg in "$@"; do app="$arg"; done
+    printf '%s\n' "$app" >> "${FAKE_INSTALLED:?}"
+    case "$app" in
+      visual-studio-code) command_name=code ;;
+      *) command_name="$app" ;;
+    esac
+    : > "$FAKE_BIN/$command_name"
+    chmod +x "$FAKE_BIN/$command_name"
+    exit 0
+    ;;
+esac

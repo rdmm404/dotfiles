@@ -1,0 +1,20 @@
+# Canonical logical application IDs. Selection manifests contain subsets of this list.
+stow
+zsh
+starship
+zoxide
+fzf
+fd
+rg
+bat
+eza
+nerd-font
+zsh-autosuggestions
+zsh-autopair
+zsh-history-substring-search
+git
+gh
+ghostty
+vscode
+rtk
+git-open

@@ -1,0 +1,7 @@
+#!/bin/bash
+pkg=''
+for arg in "$@"; do pkg="$arg"; done
+while IFS= read -r installed || [ -n "$installed" ]; do
+  [ "$installed" = "$pkg" ] && exit 0
+done < "${FAKE_INSTALLED:?}"
+exit 1
