@@ -30,11 +30,11 @@ install_choice_test() {
 
 repeat_install_test() {
   make_fixture || return 1
-  printf '%s\n' 'zsh-autopair' > "$TEST_ROOT/manifests/core"
+  printf '%s\n' 'bat' > "$TEST_ROOT/manifests/core"
   run_dot install --yes || { cleanup_fixture; return 1; }
   run_dot install --yes || { cleanup_fixture; return 1; }
-  assert_contains "$TEST_OUTPUT" 'already installed: zsh-autopair' || { cleanup_fixture; return 1; }
-  assert_not_contains "$TEST_OUTPUT" 'will install: zsh-autopair' || { cleanup_fixture; return 1; }
+  assert_contains "$TEST_OUTPUT" 'already installed: bat' || { cleanup_fixture; return 1; }
+  assert_not_contains "$TEST_OUTPUT" 'will install: bat' || { cleanup_fixture; return 1; }
   cleanup_fixture
 }
 

@@ -18,17 +18,36 @@ wsl_command_for() {
   esac
 }
 
-wsl_plugin_installed() {
-  plugin="$1"
-  case "$plugin" in
-    zsh-autosuggestions) plugin_file=zsh-autosuggestions/zsh-autosuggestions.zsh ;;
-    zsh-autopair) plugin_file=zsh-autopair/autopair.zsh ;;
-    zsh-history-substring-search) plugin_file=zsh-history-substring-search.zsh ;;
+wsl_plugin_repository() {
+  case "$1" in
+    zsh-autosuggestions) printf 'zsh-users/zsh-autosuggestions' ;;
+    zsh-autopair) printf 'hlissner/zsh-autopair' ;;
+    zsh-history-substring-search) printf 'zsh-users/zsh-history-substring-search' ;;
     *) return 1 ;;
   esac
-  [ -f "/usr/share/zsh/plugins/$plugin_file" ] || [ -f "/usr/share/zsh/$plugin_file" ] || \
-    { command -v dpkg-query >/dev/null 2>&1 && dpkg-query -W "$plugin" >/dev/null 2>&1; } || \
-    { command -v rpm >/dev/null 2>&1 && rpm -q "$plugin" >/dev/null 2>&1; }
+}
+
+wsl_plugin_file() {
+  case "$1" in
+    zsh-autosuggestions) printf 'zsh-autosuggestions.zsh' ;;
+    zsh-autopair) printf 'autopair.zsh' ;;
+    zsh-history-substring-search) printf 'zsh-history-substring-search.zsh' ;;
+    *) return 1 ;;
+  esac
+}
+
+wsl_plugin_installed() {
+  plugin="$1"
+  plugin_dir="${XDG_DATA_HOME:-${HOME:-}/.local/share}/zap/plugins/$plugin"
+  plugin_file="$(wsl_plugin_file "$plugin")" || return 1
+  [ -f "$plugin_dir/$plugin_file" ]
+}
+
+wsl_install_plugin() {
+  plugin="$1"
+  plugin_repository="$(wsl_plugin_repository "$plugin")" || return 1
+  dot_install_zap || return 1
+  zsh -c 'source "$HOME/.local/share/zap/zap.zsh" && plug "$1"' dot-zap "$plugin_repository"
 }
 
 wsl_package_manager() {
@@ -108,6 +127,9 @@ installer_install() {
     fd)
       manager="$(wsl_package_manager)" || { dot_error 'no supported WSL package manager found'; return 1; }
       wsl_run_package_manager "$manager" install -y "$(wsl_package fd)"
+      ;;
+    zsh-autosuggestions|zsh-autopair|zsh-history-substring-search)
+      wsl_install_plugin "$app"
       ;;
     *)
       manager="$(wsl_package_manager)" || { dot_error 'no supported WSL package manager found'; return 1; }
