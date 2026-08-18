@@ -1,0 +1,91 @@
+{
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.rulers": [
+      {
+        "column": 100,
+      },
+    ],
+  },
+  "python.analysis.typeCheckingMode": "standard",
+  "python.analysis.typeEvaluation.deprecateTypingAliases": true,
+  "editor.formatOnSave": true,
+  "editor.formatOnSaveMode": "modificationsIfAvailable",
+  "openInGitHub.useLocalBranch": false,
+  "diffEditor.ignoreTrimWhitespace": false,
+  "diffEditor.experimental.showMoves": true,
+  "errorLens.enabledDiagnosticLevels": ["warning", "info", "error"],
+  "editor.minimap.enabled": false,
+  "diffEditor.hideUnchangedRegions.enabled": true,
+  "diffEditor.renderSideBySide": true,
+  "ruff.lineLength": 100,
+
+  "[json][jsonc][javascript][javascriptreact][typescript][typescriptreact]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.rulers": [
+      {
+        "column": 120,
+      },
+    ],
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+  },
+  "window.commandCenter": false,
+  "editor.scrollbar.vertical": "auto",
+  "window.titleBarStyle": "custom",
+  "editor.scrollbar.horizontal": "auto",
+  // vscode-custom-css supports ${userHome} in file URIs on macOS and Linux.
+  "vscode_custom_css.imports": [
+    "file://${userHome}/.config/vscode/styles.css",
+  ],
+  "workbench.startupEditor": "none",
+  "explorer.compactFolders": false,
+  "editor.linkedEditing": true,
+  "breadcrumbs.filePath": "on",
+  "files.trimTrailingWhitespace": true,
+  "[markdown]": {
+    "files.trimTrailingWhitespace": false,
+  },
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": false,
+  "errorLens.enabled": true,
+  "vscode-pets.petColor": "green",
+  "vscode-pets.petSize": "small",
+  "vscode-pets.throwBallWithMouse": true,
+  "workbench.activityBar.location": "bottom",
+  "[yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+  },
+  "docker.extension.enableComposeLanguageServer": false,
+  "git.confirmSync": false,
+  "github.copilot.enable": {
+    "*": true,
+    "plaintext": false,
+    "markdown": false,
+    "scminput": false,
+    "go": false,
+  },
+  "go.toolsManagement.autoUpdate": true,
+  "[dockercompose]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2,
+    "editor.autoIndent": "advanced",
+    "editor.quickSuggestions": {
+      "other": true,
+      "comments": false,
+      "strings": true,
+    },
+    "editor.defaultFormatter": "redhat.vscode-yaml",
+  },
+  "[github-actions-workflow]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml",
+  },
+  "chat.viewSessions.orientation": "stacked",
+  "security.promptForRemoteFileProtocolHandling": false,
+}

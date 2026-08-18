@@ -19,11 +19,11 @@ macos_mapping_test() {
   cleanup_fixture
 }
 
-macos_ripgrep_mapping_test() {
+macos_cask_mapping_test() {
   make_fixture || return 1
-  printf '%s\n' 'rg' > "$TEST_ROOT/manifests/core"
+  printf '%s\n' 'ghostty' > "$TEST_ROOT/manifests/core"
   DOT_PLATFORM=macos run_dot install --yes || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
-  assert_contains "$TEST_TMP/commands" 'brew install ripgrep' || { cleanup_fixture; return 1; }
+  assert_contains "$TEST_TMP/commands" 'brew install --cask ghostty' || { cleanup_fixture; return 1; }
   cleanup_fixture
 }
 
@@ -124,4 +124,4 @@ pacman_fallback_test() {
   cleanup_fixture
 }
 
-omarchy_command_test && macos_mapping_test && macos_ripgrep_mapping_test && wsl_zap_plugin_status_test && wsl_zap_plugin_install_test && wsl_batcat_test && zap_argument_test && omarchy_failure_test && pacman_fallback_test
+omarchy_command_test && macos_mapping_test && macos_cask_mapping_test && wsl_zap_plugin_status_test && wsl_zap_plugin_install_test && wsl_batcat_test && zap_argument_test && omarchy_failure_test && pacman_fallback_test

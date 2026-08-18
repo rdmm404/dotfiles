@@ -1,7 +1,12 @@
 zsh/.config/zsh/secrets.local.zsh
-zsh/.config/zsh/aliases/*.local.zsh
-zsh/.config/zsh/exports/*.local.zsh
-zsh/.config/zsh/functions/*.local.zsh
+global/.config/zsh/secrets.local.zsh
+global/.config/zsh/aliases/*.local.zsh
+global/.config/zsh/exports/*.local.zsh
+global/.config/zsh/functions/*.local.zsh
+platforms/*/.config/zsh/secrets.local.zsh
+platforms/*/.config/zsh/aliases/*.local.zsh
+platforms/*/.config/zsh/exports/*.local.zsh
+platforms/*/.config/zsh/functions/*.local.zsh
 
 # pi: ignore all agent runtime/state, whitelist real config
 pi/.pi/agent/*

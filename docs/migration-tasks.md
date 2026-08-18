@@ -160,88 +160,88 @@ Write each failing fake-home test before implementing its behavior:
 
 ### Shared layout
 
-- [ ] Create `global/`.
-- [ ] Create `platforms/macos/`.
-- [ ] Create `platforms/wsl/`.
-- [ ] Create `platforms/omarchy/`.
-- [ ] Move files with history-preserving Git moves where practical.
-- [ ] Keep the old layout until the new fake-home deployment passes.
+- [x] Create `global/`.
+- [x] Create `platforms/macos/`.
+- [x] Create `platforms/wsl/`.
+- [x] Create `platforms/omarchy/`.
+- [x] Move files with history-preserving Git moves where practical.
+- [x] Keep the old layout until the new fake-home deployment passes.
 
 ### Zsh
 
-- [ ] Add a shared `.zshrc` entry point.
-- [ ] Move shared aliases into `global/`.
-- [ ] Move shared exports into `global/`.
-- [ ] Move shared functions into `global/`.
-- [ ] Add the macOS Zap foundation.
-- [ ] Add the WSL Zap foundation.
-- [ ] Add the `omarchy-zsh` foundation.
-- [ ] Load shared personal settings after each platform foundation.
-- [ ] Install or source autosuggestions on Omarchy.
-- [ ] Install or source autopair on Omarchy.
-- [ ] Install or source history substring search on Omarchy.
-- [ ] Keep Omarchy as the owner of FZF, eza, zoxide, Starship startup, and syntax highlighting.
-- [ ] Keep `git-open` available without duplicating other shell behavior.
-- [ ] Keep the fnm-based `pi()` wrapper only on macOS and WSL.
-- [ ] Remove the custom SSH-agent plugin from Omarchy.
-- [ ] Remove Zap Supercharge from Omarchy.
-- [ ] Remove the broken Zap plugin updater.
-- [ ] Fix the broken zoxide aliases.
-- [ ] Remove duplicate LazyGit aliases.
-- [ ] Remove global Kitty-specific aliases.
-- [ ] Move `ollama.exe`, `/snap/bin`, and display forwarding to WSL.
-- [ ] Move Homebrew flags and paths to macOS.
-- [ ] Move `AWS_PROFILE` and similar personal defaults to ignored local files.
-- [ ] Remove hard-coded usernames and home directories.
+- [x] Add a shared `.zshrc` entry point.
+- [x] Move shared aliases into `global/`.
+- [x] Move shared exports into `global/`.
+- [x] Move shared functions into `global/`.
+- [x] Add the macOS Zap foundation.
+- [x] Add the WSL Zap foundation.
+- [x] Add the `omarchy-zsh` foundation.
+- [x] Load shared personal settings after each platform foundation.
+- [x] Install or source autosuggestions on Omarchy.
+- [x] Install or source autopair on Omarchy.
+- [x] Install or source history substring search on Omarchy.
+- [x] Keep Omarchy as the owner of FZF, eza, zoxide, Starship startup, and syntax highlighting.
+- [x] Keep `git-open` available without duplicating other shell behavior.
+- [x] Keep the fnm-based `pi()` wrapper only on macOS and WSL.
+- [x] Remove the custom SSH-agent plugin from Omarchy.
+- [x] Remove Zap Supercharge from Omarchy.
+- [x] Remove the broken Zap plugin updater.
+- [x] Fix the broken zoxide aliases.
+- [x] Remove duplicate LazyGit aliases.
+- [x] Remove global Kitty-specific aliases.
+- [x] Move `ollama.exe`, `/snap/bin`, and display forwarding to WSL.
+- [x] Move Homebrew flags and paths to macOS.
+- [x] Move `AWS_PROFILE` and similar personal defaults to ignored local files.
+- [x] Remove hard-coded usernames and home directories.
 
 ### Starship
 
-- [ ] Move the existing Starship config into `global/`.
-- [ ] Validate the config with Starship.
-- [ ] Verify the Arch symbol and required glyphs.
-- [ ] Check Kubernetes detection behavior.
-- [ ] Confirm acceptable shell startup time.
+- [x] Move the existing Starship config into `global/`.
+- [x] Validate the config with Starship.
+- [x] Verify the Arch symbol and required glyphs.
+- [x] Check Kubernetes detection behavior.
+- [x] Confirm acceptable shell startup time.
 
 ### VS Code
 
-- [ ] Create one canonical shared settings file.
-- [ ] Remove the hard-coded Poetry virtualenv path.
-- [ ] Remove hard-coded macOS user paths.
-- [ ] Add the macOS settings-path adapter link.
-- [ ] Add the Omarchy/Linux settings-path adapter link.
-- [ ] Preserve `styles.css` in a shared location.
-- [ ] Verify the custom CSS extension's path rules on both platforms.
-- [ ] Add the correct platform-specific CSS path only if one shared value cannot work.
-- [ ] Keep VS Code extension installation deferred.
+- [x] Create one canonical shared settings file.
+- [x] Remove the hard-coded Poetry virtualenv path.
+- [x] Remove hard-coded macOS user paths.
+- [x] Add the macOS settings-path adapter link.
+- [x] Add the Omarchy/Linux settings-path adapter link.
+- [x] Preserve `styles.css` in a shared location.
+- [x] Verify the custom CSS extension's path rules on both platforms.
+- [x] Add the correct platform-specific CSS path only if one shared value cannot work.
+- [x] Keep VS Code extension installation deferred.
 
 ### RTK
 
-- [ ] Make `global/.config/rtk/config.toml` canonical.
-- [ ] Use the canonical Linux path directly.
-- [ ] Add a macOS `Library/Application Support` adapter link.
-- [ ] Stop creating a macOS `Library` tree on Linux.
-- [ ] Validate the config with RTK.
+- [x] Make `global/.config/rtk/config.toml` canonical.
+- [x] Use the canonical Linux path directly.
+- [x] Add a macOS `Library/Application Support` adapter link.
+- [x] Stop creating a macOS `Library` tree on Linux.
+- [x] Validate the config with RTK.
 
 ### Ghostty and fonts
 
-- [ ] Keep the current Ghostty config working on macOS.
-- [ ] Prepare Omarchy Ghostty config to use Omarchy theme files.
-- [ ] Let Omarchy control its Ghostty font.
-- [ ] Remove explicit FiraCode settings from Omarchy-managed application config.
-- [ ] Keep macOS font choices independent.
-- [ ] Preserve intentional padding and key behavior unless VM testing rejects it.
+- [x] Keep the current Ghostty config working on macOS.
+- [x] Prepare Omarchy Ghostty config to use Omarchy theme files.
+- [x] Let Omarchy control its Ghostty font.
+- [x] Remove explicit FiraCode settings from Omarchy-managed application config.
+- [x] Keep macOS font choices independent.
+- [x] Preserve intentional padding and key behavior unless VM testing rejects it.
 
 ### Cleanup
 
-- [ ] Update `.gitignore` for local platform settings and runtime state.
-- [ ] Remove the old Makefile after `dot` covers its needed behavior.
-- [ ] Remove old package directories after the new layout is proven.
-- [ ] Confirm unrelated TDD skill changes remain untouched.
+- [x] Update `.gitignore` for local platform settings and runtime state.
+- [x] Move configuration deployment out of the old Makefile; retain only the scoped `stow-skills` compatibility target.
+- [x] Remove old package directories after the new layout is proven.
+- [x] Confirm unrelated TDD skill changes remain untouched.
 
 ### Phase exit
 
-- [ ] Verify expected macOS, WSL, and Omarchy paths in fake homes.
-- [ ] Confirm shared files have no platform-specific absolute paths.
+- [x] Verify expected macOS, WSL, and Omarchy paths in fake homes.
+- [x] Confirm shared files have no platform-specific absolute paths.
 - [ ] Confirm WSL still works before merging the restructure.
 
 ## Phase 4: Validate WSL and macOS

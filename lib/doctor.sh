@@ -39,6 +39,55 @@ doctor_check_syntax() {
   fi
 }
 
+doctor_canonical_link_check() {
+  doctor_canonical_link="$1"
+  doctor_canonical_target="$2"
+  if [ ! -L "$doctor_canonical_link" ]; then
+    dot_error "canonical adapter is not a link: ${doctor_canonical_link#$DOT_ROOT/}"
+    DOCTOR_PROBLEMS=$((DOCTOR_PROBLEMS + 1))
+    return 0
+  fi
+  doctor_canonical_resolved="$(deploy_resolve_path "$doctor_canonical_link" 2>/dev/null)" || doctor_canonical_resolved=''
+  if [ "$doctor_canonical_resolved" != "$doctor_canonical_target" ]; then
+    dot_error "canonical adapter points to the wrong file: ${doctor_canonical_link#$DOT_ROOT/}"
+    DOCTOR_PROBLEMS=$((DOCTOR_PROBLEMS + 1))
+  fi
+}
+
+doctor_check_canonical_paths() {
+  doctor_canonical_file=''
+  for doctor_canonical_file in \
+    "$DOT_ROOT/global/.zshrc" \
+    "$DOT_ROOT/global/.config/rtk/config.toml" \
+    "$DOT_ROOT/global/.config/starship.toml" \
+    "$DOT_ROOT/global/.config/vscode/settings.json" \
+    "$DOT_ROOT/global/.config/vscode/styles.css" \
+    "$DOT_ROOT/global/.config/ghostty/shared.conf"; do
+    if [ -f "$doctor_canonical_file" ] && [ ! -L "$doctor_canonical_file" ]; then
+      :
+    else
+      dot_error "canonical configuration is missing: ${doctor_canonical_file#$DOT_ROOT/}"
+      DOCTOR_PROBLEMS=$((DOCTOR_PROBLEMS + 1))
+    fi
+  done
+
+  case "$PLATFORM" in
+    macos)
+      doctor_canonical_link_check \
+        "$DOT_ROOT/platforms/macos/Library/Application Support/Code/User/settings.json" \
+        "$DOT_ROOT/global/.config/vscode/settings.json"
+      doctor_canonical_link_check \
+        "$DOT_ROOT/platforms/macos/Library/Application Support/rtk/config.toml" \
+        "$DOT_ROOT/global/.config/rtk/config.toml"
+      ;;
+    wsl|omarchy)
+      doctor_canonical_link_check \
+        "$DOT_ROOT/platforms/$PLATFORM/.config/Code/User/settings.json" \
+        "$DOT_ROOT/global/.config/vscode/settings.json"
+      ;;
+  esac
+}
+
 doctor_check_fast_checks() {
   if command -v shellcheck >/dev/null 2>&1; then
     if shellcheck -e SC1090,SC1091 "$DOT_ROOT/dot" "$DOT_ROOT"/lib/*.sh "$DOT_ROOT"/installers/*.sh "$DOT_ROOT"/tests/*.sh "$DOT_ROOT/tests/run" "$DOT_ROOT"/tests/fakes/bin/*; then
@@ -51,8 +100,8 @@ doctor_check_fast_checks() {
     dot_skip 'ShellCheck unavailable'
   fi
 
-  if command -v starship >/dev/null 2>&1 && [ -r "$DOT_ROOT/starship/.config/starship.toml" ]; then
-    if STARSHIP_CONFIG="$DOT_ROOT/starship/.config/starship.toml" starship print-config >/dev/null 2>&1; then
+  if command -v starship >/dev/null 2>&1 && [ -r "$DOT_ROOT/global/.config/starship.toml" ]; then
+    if STARSHIP_CONFIG="$DOT_ROOT/global/.config/starship.toml" starship print-config >/dev/null 2>&1; then
       dot_ok 'Starship configuration parses'
     else
       dot_error 'Starship configuration failed to parse'
@@ -62,8 +111,8 @@ doctor_check_fast_checks() {
     dot_skip 'Starship configuration check deferred until Phase 3'
   fi
 
-  if command -v rtk >/dev/null 2>&1 && [ -r "$DOT_ROOT/rtk/.config/rtk/config.toml" ]; then
-    if RTK_CONFIG="$DOT_ROOT/rtk/.config/rtk/config.toml" rtk config >/dev/null 2>&1; then
+  if command -v rtk >/dev/null 2>&1 && [ -r "$DOT_ROOT/global/.config/rtk/config.toml" ]; then
+    if RTK_CONFIG="$DOT_ROOT/global/.config/rtk/config.toml" rtk config >/dev/null 2>&1; then
       dot_ok 'RTK configuration parses'
     else
       dot_error 'RTK configuration failed to parse'
@@ -95,14 +144,14 @@ EOF
   fi
 
   if command -v rg >/dev/null 2>&1; then
-    if rg -n '(/Users/[A-Za-z]|/home/[A-Za-z])' "$DOT_ROOT/dot" "$DOT_ROOT"/lib "$DOT_ROOT"/installers "$DOT_ROOT"/manifests "$DOT_ROOT"/tests >/dev/null 2>&1; then
-      dot_error 'new Phase 1 files contain a hard-coded user home path'
+    if rg -n '(/Users/[A-Za-z]|/home/[A-Za-z])' "$DOT_ROOT/global" >/dev/null 2>&1; then
+      dot_error 'shared configuration has a hard-coded user home path'
       DOCTOR_PROBLEMS=$((DOCTOR_PROBLEMS + 1))
     else
-      dot_ok 'no hard-coded user home paths in Phase 1 files'
+      dot_ok 'shared configuration has no hard-coded user home paths'
     fi
   fi
-  dot_skip 'canonical-link checks deferred until configuration restructuring'
+  doctor_check_canonical_paths
 }
 
 doctor_check_deployment() {
@@ -172,11 +221,19 @@ doctor_command() {
   printf 'Platform: %s\n' "$(platform_label "$PLATFORM")"
 
   doctor_required=''
-  for doctor_required in dot lib installers manifests tests; do
+  for doctor_required in dot lib installers manifests tests global platforms; do
     if [ -e "$DOT_ROOT/$doctor_required" ]; then
       dot_ok "repository entry exists: $doctor_required"
     else
       dot_error "repository entry is missing: $doctor_required"
+      DOCTOR_PROBLEMS=$((DOCTOR_PROBLEMS + 1))
+    fi
+  done
+  for doctor_platform in macos wsl omarchy; do
+    if [ -d "$DOT_ROOT/platforms/$doctor_platform" ]; then
+      dot_ok "platform layer exists: $doctor_platform"
+    else
+      dot_error "platform layer is missing: $doctor_platform"
       DOCTOR_PROBLEMS=$((DOCTOR_PROBLEMS + 1))
     fi
   done

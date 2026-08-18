@@ -1,0 +1,3 @@
+config-file = ~/.config/ghostty/shared.conf
+theme = Dracula
+font-family = FiraCode Nerd Font

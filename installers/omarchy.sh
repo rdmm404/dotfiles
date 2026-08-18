@@ -6,7 +6,7 @@ installer_status() {
   app_known "$app" || return 2
   case "$app" in
     zsh)
-      if command -v zsh >/dev/null 2>&1 && { command -v omarchy-zsh >/dev/null 2>&1 || [ -f "${HOME:-}/.local/share/omarchy-zsh/omarchy-zsh.zsh" ]; }; then
+      if command -v zsh >/dev/null 2>&1 && { [ -f "${HOME:-}/.local/share/omarchy-zsh/omarchy-zsh.zsh" ] || [ -f /usr/share/omarchy-zsh/omarchy-zsh.zsh ] || [ -f /usr/share/omarchy-zsh/shell/omarchy-zsh.zsh ]; }; then
         INSTALLER_STATUS=installed
       else
         INSTALLER_STATUS=missing
