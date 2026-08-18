@@ -242,22 +242,22 @@ Write each failing fake-home test before implementing its behavior:
 
 - [x] Verify expected macOS, WSL, and Omarchy paths in fake homes.
 - [x] Confirm shared files have no platform-specific absolute paths.
-- [ ] Confirm WSL still works before merging the restructure.
+- [x] Confirm WSL still works before merging the restructure.
 
 ## Phase 4: Validate WSL and macOS
 
 ### WSL
 
-- [ ] Run `dot doctor`.
-- [ ] Run `dot plan` and review every change.
-- [ ] Run the one-time legacy-link migration.
-- [ ] Use adoption only for real conflicting files.
-- [ ] Start a clean Zsh session.
-- [ ] Check Zap and retained plugins.
-- [ ] Check Starship, zoxide, FZF, aliases, RTK, and the Pi wrapper.
-- [ ] Run bootstrap again and confirm a clean result.
-- [ ] Test backup restore and redeploy.
-- [ ] Test undeploy and redeploy.
+- [x] Run `dot doctor`.
+- [x] Run `dot plan` and review every change.
+- [x] Run the one-time legacy-link migration.
+- [x] Use adoption only for real conflicting files.
+- [x] Start a clean Zsh session.
+- [x] Check Zap and retained plugins.
+- [x] Check Starship, zoxide, FZF, aliases, RTK, and the Pi wrapper.
+- [x] Run bootstrap again and confirm a clean result.
+- [x] Test backup restore and redeploy.
+- [x] Test undeploy and redeploy.
 
 ### macOS
 
@@ -276,8 +276,8 @@ Write each failing fake-home test before implementing its behavior:
 
 ### Phase exit
 
-- [ ] Run all shell, manifest, and fake-home tests.
-- [ ] Record any manual follow-up that cannot be automated.
+- [x] Run all shell, manifest, and fake-home tests.
+- [x] Record any manual follow-up that cannot be automated.
 - [ ] Confirm WSL and at least one Mac pass their smoke tests.
 
 ## Phase 5: Test Omarchy in a VM
