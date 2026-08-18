@@ -1,0 +1,15 @@
+#!/bin/bash
+printf 'omarchy %s\n' "$*" >> "${FAKE_LOG:?}"
+
+app=''
+for arg in "$@"; do
+  app="$arg"
+done
+case "$*" in
+  *'install terminal ghostty') command_name=ghostty ;;
+  *'install editor vscode') command_name=code ;;
+  *) command_name="$app" ;;
+esac
+: > "$FAKE_BIN/$command_name"
+chmod +x "$FAKE_BIN/$command_name"
+exit 0

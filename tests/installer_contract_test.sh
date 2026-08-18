@@ -5,9 +5,9 @@ TEST_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
 omarchy_command_test() {
   make_fixture || return 1
-  printf '%s\n' 'ghostty' > "$TEST_ROOT/manifests/core"
+  printf '%s\n' 'rtk' > "$TEST_ROOT/manifests/core"
   DOT_PLATFORM=omarchy run_dot install --yes || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
-  assert_contains "$TEST_TMP/commands" 'omarchy-install --yes ghostty' || { cleanup_fixture; return 1; }
+  assert_contains "$TEST_TMP/commands" 'omarchy pkg aur add rtk' || { cleanup_fixture; return 1; }
   cleanup_fixture
 }
 
@@ -39,9 +39,9 @@ EOF
 
 macos_cask_mapping_test() {
   make_fixture || return 1
-  printf '%s\n' 'ghostty' > "$TEST_ROOT/manifests/core"
+  printf '%s\n' 'nerd-font' > "$TEST_ROOT/manifests/core"
   DOT_PLATFORM=macos run_dot install --yes || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
-  assert_contains "$TEST_TMP/commands" 'brew install --cask ghostty' || { cleanup_fixture; return 1; }
+  assert_contains "$TEST_TMP/commands" 'brew install --cask font-fira-code-nerd' || { cleanup_fixture; return 1; }
   cleanup_fixture
 }
 
@@ -128,13 +128,13 @@ EOF
 
 omarchy_failure_test() {
   make_fixture || return 1
-  cat > "$TEST_BIN/omarchy-install" <<'EOF'
+  cat > "$TEST_BIN/omarchy" <<'EOF'
 #!/bin/bash
-printf 'omarchy-install %s\n' "$*" >> "${FAKE_LOG:?}"
+printf 'omarchy %s\n' "$*" >> "${FAKE_LOG:?}"
 exit 1
 EOF
-  chmod +x "$TEST_BIN/omarchy-install"
-  printf '%s\n' 'ghostty' > "$TEST_ROOT/manifests/core"
+  chmod +x "$TEST_BIN/omarchy"
+  printf '%s\n' 'rtk' > "$TEST_ROOT/manifests/core"
   if DOT_PLATFORM=omarchy run_dot install --yes; then
     cleanup_fixture
     fail 'failed Omarchy setup command unexpectedly succeeded'
@@ -146,10 +146,11 @@ EOF
 
 pacman_fallback_test() {
   make_fixture || return 1
-  rm -f "$TEST_BIN/omarchy-install"
-  printf '%s\n' 'ghostty' > "$TEST_ROOT/manifests/core"
-  DOT_PLATFORM=omarchy run_dot install --yes || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
-  assert_contains "$TEST_TMP/commands" 'pacman -S --needed --noconfirm ghostty' || { cleanup_fixture; return 1; }
+  rm -f "$TEST_BIN/omarchy"
+  printf '%s\n' 'fallback-app' >> "$TEST_ROOT/manifests/catalog"
+  printf '%s\n' 'fallback-app' > "$TEST_ROOT/manifests/core"
+  TEST_PATH="$TEST_BIN" DOT_PLATFORM=omarchy run_dot install --yes || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
+  assert_contains "$TEST_TMP/commands" 'pacman -S --needed --noconfirm fallback-app' || { cleanup_fixture; return 1; }
   cleanup_fixture
 }
 

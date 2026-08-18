@@ -58,7 +58,7 @@ run_dot() {
   else
     test_platform="${DOT_PLATFORM:-wsl}"
   fi
-  test_path="$TEST_BIN:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+  test_path="${TEST_PATH:-$TEST_BIN:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin}"
   test_stow_command="${TEST_STOW_COMMAND:-${REAL_STOW:-$(command -v stow)}}"
   if [ "${TEST_REAL_STOW:-0}" = 1 ]; then
     if [ "${TEST_KEEP_STOW:-0}" = 1 ]; then

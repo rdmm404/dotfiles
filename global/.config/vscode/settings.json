@@ -1,4 +1,6 @@
 {
+  "workbench.colorTheme": "Tokyo Night",
+  "update.mode": "none",
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.rulers": [

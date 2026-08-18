@@ -6,11 +6,15 @@ installer_status() {
   app_known "$app" || return 2
   case "$app" in
     zsh)
-      if command -v zsh >/dev/null 2>&1 && { [ -f "${HOME:-}/.local/share/omarchy-zsh/omarchy-zsh.zsh" ] || [ -f /usr/share/omarchy-zsh/omarchy-zsh.zsh ] || [ -f /usr/share/omarchy-zsh/shell/omarchy-zsh.zsh ]; }; then
+      if command -v zsh >/dev/null 2>&1 && { [ -f "${HOME:-}/.local/share/omarchy-zsh/omarchy-zsh.zsh" ] || [ -f /usr/share/omarchy-zsh/omarchy-zsh.zsh ] || [ -f /usr/share/omarchy-zsh/shell/omarchy-zsh.zsh ] || [ -f /usr/share/omarchy-zsh/shell/all ]; }; then
         INSTALLER_STATUS=installed
       else
         INSTALLER_STATUS=missing
       fi
+      ;;
+    zsh-autopair)
+      # No Arch or AUR package currently provides hlissner/zsh-autopair.
+      INSTALLER_STATUS=unsupported
       ;;
     nerd-font)
       if command -v fc-list >/dev/null 2>&1 && fc-list 2>/dev/null | awk 'BEGIN { IGNORECASE=1 } /nerd[[:space:]]*font/ { found=1 } END { exit !found }'; then
@@ -19,7 +23,7 @@ installer_status() {
         INSTALLER_STATUS=missing
       fi
       ;;
-    zsh-autosuggestions|zsh-autopair|zsh-history-substring-search)
+    zsh-autosuggestions|zsh-history-substring-search)
       if omarchy_plugin_installed "$app"; then
         INSTALLER_STATUS=installed
       else
@@ -47,30 +51,42 @@ omarchy_plugin_installed() {
 
 omarchy_package() {
   case "$1" in
+    zsh) printf 'omarchy-zsh' ;;
     fd) printf 'fd' ;;
     rg) printf 'ripgrep' ;;
     nerd-font) printf 'ttf-fira-code-nerd' ;;
-    vscode) printf 'visual-studio-code' ;;
+    vscode) printf 'visual-studio-code-bin' ;;
     *) printf '%s' "$1" ;;
   esac
 }
 
 omarchy_install_with_command() {
-  if command -v omarchy-install >/dev/null 2>&1; then
-    if [ "${DOT_YES:-0}" = 1 ]; then
-      omarchy-install --yes "$1"
-    else
-      omarchy-install "$1"
-    fi
+  app="$1"
+  package="$2"
+  if command -v omarchy >/dev/null 2>&1; then
+    case "$app" in
+      ghostty) omarchy install terminal ghostty ;;
+      vscode) omarchy install editor vscode ;;
+      rtk|git-open) omarchy pkg aur add "$package" ;;
+      *) omarchy pkg add "$package" ;;
+    esac
     return $?
-  elif command -v pacman >/dev/null 2>&1; then
+  fi
+
+  if command -v pacman >/dev/null 2>&1; then
+    case "$app" in
+      rtk|git-open)
+        dot_error "Omarchy's AUR package helper is required to install $app"
+        return 1
+        ;;
+    esac
     if [ "${DOT_NO_SUDO:-0}" = 1 ] || ! command -v sudo >/dev/null 2>&1; then
-      pacman -S --needed --noconfirm "$2"
+      pacman -S --needed --noconfirm "$package"
     else
-      sudo pacman -S --needed --noconfirm "$2"
+      sudo pacman -S --needed --noconfirm "$package"
     fi
   else
-    dot_error 'neither omarchy-install nor pacman is available'
+    dot_error 'neither the omarchy package helper nor pacman is available'
     return 1
   fi
 }
@@ -78,9 +94,5 @@ omarchy_install_with_command() {
 installer_install() {
   app="$1"
   app_known "$app" || return 2
-  if [ "$app" = zsh ]; then
-    omarchy_install_with_command omarchy-zsh omarchy-zsh
-  else
-    omarchy_install_with_command "$app" "$(omarchy_package "$app")"
-  fi
+  omarchy_install_with_command "$app" "$(omarchy_package "$app")"
 }

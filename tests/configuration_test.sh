@@ -53,8 +53,7 @@ configuration_deploy_test() {
     omarchy)
       assert_linked "$configuration_tmp/home/.config/Code/User/settings.json" || { rm -rf "$configuration_tmp"; return 1; }
       assert_linked "$configuration_tmp/home/.config/ghostty/config" || { rm -rf "$configuration_tmp"; return 1; }
-      assert_contains "$TEST_REPO/platforms/omarchy/.config/ghostty/config" 'config-file = ~/.config/ghostty/shared.conf' || { rm -rf "$configuration_tmp"; return 1; }
-      [ -f "$configuration_tmp/home/.config/ghostty/shared.conf" ] || { rm -rf "$configuration_tmp"; fail 'Omarchy Ghostty shared config missing'; return 1; }
+      assert_contains "$TEST_REPO/platforms/omarchy/.config/ghostty/config" 'config-file = ?"~/.local/state/omarchy/current/theme/ghostty.conf"' || { rm -rf "$configuration_tmp"; return 1; }
       ;;
   esac
 

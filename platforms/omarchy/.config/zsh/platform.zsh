@@ -1,16 +1,23 @@
 DOT_ZSH_FOUNDATION=omarchy
 DOT_ZSH_OMARCHY_LOADED=0
 
-for omarchy_zsh_file in \
-  /usr/share/omarchy-zsh/omarchy-zsh.zsh \
-  /usr/share/omarchy-zsh/shell/omarchy-zsh.zsh \
-  "$HOME/.local/share/omarchy-zsh/omarchy-zsh.zsh"; do
-  if [ -r "$omarchy_zsh_file" ]; then
-    source "$omarchy_zsh_file"
-    DOT_ZSH_OMARCHY_LOADED=1
-    break
-  fi
-done
+# Omarchy 4 ships its foundation as separate zoptions and all files.
+if [ -r /usr/share/omarchy-zsh/shell/zoptions ] && [ -r /usr/share/omarchy-zsh/shell/all ]; then
+  source /usr/share/omarchy-zsh/shell/zoptions
+  source /usr/share/omarchy-zsh/shell/all
+  DOT_ZSH_OMARCHY_LOADED=1
+else
+  for omarchy_zsh_file in \
+    /usr/share/omarchy-zsh/omarchy-zsh.zsh \
+    /usr/share/omarchy-zsh/shell/omarchy-zsh.zsh \
+    "$HOME/.local/share/omarchy-zsh/omarchy-zsh.zsh"; do
+    if [ -r "$omarchy_zsh_file" ]; then
+      source "$omarchy_zsh_file"
+      DOT_ZSH_OMARCHY_LOADED=1
+      break
+    fi
+  done
+fi
 
 if [ "$DOT_ZSH_OMARCHY_LOADED" = 0 ]; then
   print -u2 'omarchy-zsh foundation was not found; install omarchy-zsh before starting Zsh'
