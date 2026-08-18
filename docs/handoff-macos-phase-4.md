@@ -91,9 +91,9 @@ command -v starship zoxide fzf eza rtk git-open
 whence -f pi
 ```
 
-### 6. Verify macOS adapter links
+### 6. Verify macOS adapter and platform settings
 
-Confirm that the deployed links resolve to the repository's canonical shared files:
+Confirm that the deployed links resolve correctly. VS Code intentionally uses the macOS-owned settings copy so its theme can be selected independently:
 
 ```bash
 readlink "$HOME/Library/Application Support/Code/User/settings.json"

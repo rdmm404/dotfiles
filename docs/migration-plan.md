@@ -74,7 +74,7 @@ Follow the green thread: plan, confirm, change, and verify. Keep the code and te
 - Remove broken or duplicated aliases and plugin setup.
 - Preserve the fnm-based Pi wrapper only on macOS and WSL.
 - Move Starship to the shared layer.
-- Make VS Code settings canonical and remove the Poetry virtualenv path.
+- Keep shared VS Code settings theme-neutral, with a temporary complete macOS copy for its platform-owned theme; remove the Poetry virtualenv path.
 - Make RTK configuration canonical with platform path adapters.
 - Preserve VS Code custom CSS.
 - Prepare Ghostty so Omarchy can own its theme and font.
@@ -100,7 +100,7 @@ Follow the green thread: plan, confirm, change, and verify. Keep the code and te
 
 - Test on at least one Mac before deploying to both.
 - Check Zap and the retained plugins.
-- Check canonical VS Code and RTK path adapters.
+- Check VS Code platform settings and RTK path adapters.
 - Check Homebrew application detection.
 - Verify deploy, backup, restore, and undeploy behavior.
 

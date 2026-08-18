@@ -40,6 +40,8 @@ configuration_deploy_test() {
       assert_contains "$TEST_REPO/platforms/macos/.config/ghostty/config" 'config-file = ~/.config/ghostty/shared.conf' || { rm -rf "$configuration_tmp"; return 1; }
       [ -f "$configuration_tmp/home/.config/ghostty/shared.conf" ] || { rm -rf "$configuration_tmp"; fail 'macOS Ghostty shared config missing'; return 1; }
       assert_linked "$configuration_tmp/home/Library/Application Support/Code/User/settings.json" || { rm -rf "$configuration_tmp"; return 1; }
+      assert_contains "$TEST_REPO/platforms/macos/Library/Application Support/Code/User/settings.json" '"workbench.colorTheme": "Dracula Theme"' || { rm -rf "$configuration_tmp"; return 1; }
+      assert_contains "$TEST_REPO/platforms/macos/Library/Application Support/Code/User/settings.json" '"workbench.colorCustomizations"' || { rm -rf "$configuration_tmp"; return 1; }
       assert_linked "$configuration_tmp/home/Library/Application Support/rtk/config.toml" || { rm -rf "$configuration_tmp"; return 1; }
       [ -f "$configuration_tmp/home/Library/Application Support/MTMR/items.json" ] || { rm -rf "$configuration_tmp"; fail 'MTMR config missing'; return 1; }
       assert_linked "$configuration_tmp/home/.config/ghostty/config" || { rm -rf "$configuration_tmp"; return 1; }

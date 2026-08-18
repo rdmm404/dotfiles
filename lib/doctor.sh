@@ -39,6 +39,15 @@ doctor_check_syntax() {
   fi
 }
 
+doctor_platform_file_check() {
+  doctor_platform_file="$1"
+  if [ -f "$doctor_platform_file" ] && [ ! -L "$doctor_platform_file" ]; then
+    return 0
+  fi
+  dot_error "platform configuration is missing: ${doctor_platform_file#$DOT_ROOT/}"
+  DOCTOR_PROBLEMS=$((DOCTOR_PROBLEMS + 1))
+}
+
 doctor_canonical_link_check() {
   doctor_canonical_link="$1"
   doctor_canonical_target="$2"
@@ -73,9 +82,8 @@ doctor_check_canonical_paths() {
 
   case "$PLATFORM" in
     macos)
-      doctor_canonical_link_check \
-        "$DOT_ROOT/platforms/macos/Library/Application Support/Code/User/settings.json" \
-        "$DOT_ROOT/global/.config/vscode/settings.json"
+      doctor_platform_file_check \
+        "$DOT_ROOT/platforms/macos/Library/Application Support/Code/User/settings.json"
       doctor_canonical_link_check \
         "$DOT_ROOT/platforms/macos/Library/Application Support/rtk/config.toml" \
         "$DOT_ROOT/global/.config/rtk/config.toml"

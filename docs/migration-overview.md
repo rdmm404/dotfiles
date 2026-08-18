@@ -85,7 +85,7 @@ A platform layer may add a platform file, but it must not silently replace a fil
 - `platforms/macos/`, `platforms/wsl/`, and `platforms/omarchy/` contain only platform differences.
 - There is no machine-specific layer for now because there will be only one Omarchy machine.
 - Files with the same contents but different home-directory paths use small platform adapter links to one canonical file.
-- VS Code settings will have one canonical copy; the hard-coded Poetry virtualenv path will be removed.
+- VS Code keeps shared settings in `global/`; macOS temporarily owns a complete settings copy so it can select its theme independently. See [the configuration composition proposal](configuration-composition-proposal.md).
 - RTK will also have one canonical config instead of making Linux depend on a macOS `Library` path.
 
 ### Shell

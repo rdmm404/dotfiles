@@ -207,7 +207,8 @@ Write each failing fake-home test before implementing its behavior:
 - [x] Create one canonical shared settings file.
 - [x] Remove the hard-coded Poetry virtualenv path.
 - [x] Remove hard-coded macOS user paths.
-- [x] Add the macOS settings-path adapter link.
+- [x] Keep a complete macOS settings copy for its platform-owned theme.
+- [x] Document the deferred configuration composition design.
 - [x] Add the Omarchy/Linux settings-path adapter link.
 - [x] Preserve `styles.css` in a shared location.
 - [x] Verify the custom CSS extension's path rules on both platforms.

@@ -10,12 +10,40 @@ macos_brew_package() {
   esac
 }
 
-macos_formula_installed() {
-  command -v brew >/dev/null 2>&1 && brew list --formula "$1" >/dev/null 2>&1
-}
-
 macos_cask_installed() {
   command -v brew >/dev/null 2>&1 && brew list --cask "$1" >/dev/null 2>&1
+}
+
+macos_plugin_repository() {
+  case "$1" in
+    zsh-autosuggestions) printf 'zsh-users/zsh-autosuggestions' ;;
+    zsh-autopair) printf 'hlissner/zsh-autopair' ;;
+    zsh-history-substring-search) printf 'zsh-users/zsh-history-substring-search' ;;
+    *) return 1 ;;
+  esac
+}
+
+macos_plugin_file() {
+  case "$1" in
+    zsh-autosuggestions) printf 'zsh-autosuggestions.zsh' ;;
+    zsh-autopair) printf 'autopair.zsh' ;;
+    zsh-history-substring-search) printf 'zsh-history-substring-search.zsh' ;;
+    *) return 1 ;;
+  esac
+}
+
+macos_plugin_installed() {
+  plugin="$1"
+  plugin_dir="${XDG_DATA_HOME:-${HOME:-}/.local/share}/zap/plugins/$plugin"
+  plugin_file="$(macos_plugin_file "$plugin")" || return 1
+  [ -f "$plugin_dir/$plugin_file" ]
+}
+
+macos_install_plugin() {
+  plugin="$1"
+  plugin_repository="$(macos_plugin_repository "$plugin")" || return 1
+  dot_install_zap || return 1
+  zsh -c 'source "$HOME/.local/share/zap/zap.zsh" && plug "$1"' dot-zap "$plugin_repository"
 }
 
 installer_status() {
@@ -44,7 +72,7 @@ installer_status() {
       command -v "$(app_command "$app")" >/dev/null 2>&1 && INSTALLER_STATUS=installed || INSTALLER_STATUS=missing
       ;;
     zsh-autosuggestions|zsh-autopair|zsh-history-substring-search)
-      macos_formula_installed "$app" && INSTALLER_STATUS=installed || INSTALLER_STATUS=missing
+      macos_plugin_installed "$app" && INSTALLER_STATUS=installed || INSTALLER_STATUS=missing
       ;;
   esac
   return 0
@@ -74,7 +102,7 @@ installer_install() {
       macos_brew_install cask "$(macos_brew_package "$app")"
       ;;
     zsh-autosuggestions|zsh-autopair|zsh-history-substring-search)
-      macos_brew_install formula "$app"
+      macos_install_plugin "$app"
       ;;
     *)
       macos_brew_install formula "$(macos_brew_package "$app")"
