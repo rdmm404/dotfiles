@@ -184,12 +184,31 @@ EOF
 "
 }
 
+deploy_walk_is_ignored() {
+  deploy_ignore_root="$1"
+  deploy_ignore_relative="$2"
+  [ -r "$deploy_ignore_root/.stow-local-ignore" ] || return 1
+  deploy_ignore_pattern=''
+  while IFS= read -r deploy_ignore_pattern || [ -n "$deploy_ignore_pattern" ]; do
+    [ -n "$deploy_ignore_pattern" ] || continue
+    case "$deploy_ignore_pattern" in
+      \#*) continue ;;
+    esac
+    DEPLOY_IGNORE_PATTERN="$deploy_ignore_pattern" awk '$0 ~ ENVIRON["DEPLOY_IGNORE_PATTERN"] { found=1 } END { exit !found }' <<EOF
+$deploy_ignore_relative
+EOF
+    [ "$?" = 0 ] && return 0
+  done < "$deploy_ignore_root/.stow-local-ignore"
+  return 1
+}
+
 deploy_walk_layer() {
-  local deploy_walk_root deploy_walk_relative deploy_walk_layer_name
+  local deploy_walk_root deploy_walk_relative deploy_walk_layer_name deploy_walk_package_root
   local deploy_walk_child deploy_walk_name deploy_walk_next deploy_walk_target
   deploy_walk_root="$1"
   deploy_walk_relative="$2"
   deploy_walk_layer_name="$3"
+  deploy_walk_package_root="${4:-$deploy_walk_root}"
   deploy_walk_child=''
   for deploy_walk_child in \
     "$deploy_walk_root"/.[!.]* \
@@ -200,19 +219,16 @@ deploy_walk_layer() {
     case "$deploy_walk_name" in
       .|..|.stow-local-ignore) continue ;;
     esac
-    if [ -d "$deploy_walk_child" ] && [ ! -L "$deploy_walk_child" ]; then
-      if [ -n "$deploy_walk_relative" ]; then
-        deploy_walk_next="$deploy_walk_relative/$deploy_walk_name"
-      else
-        deploy_walk_next="$deploy_walk_name"
-      fi
-      deploy_walk_layer "$deploy_walk_child" "$deploy_walk_next" "$deploy_walk_layer_name" || return 1
+    if [ -n "$deploy_walk_relative" ]; then
+      deploy_walk_next="$deploy_walk_relative/$deploy_walk_name"
     else
-      if [ -n "$deploy_walk_relative" ]; then
-        deploy_walk_target="$HOME/$deploy_walk_relative/$deploy_walk_name"
-      else
-        deploy_walk_target="$HOME/$deploy_walk_name"
-      fi
+      deploy_walk_next="$deploy_walk_name"
+    fi
+    deploy_walk_is_ignored "$deploy_walk_package_root" "$deploy_walk_next" && continue
+    if [ -d "$deploy_walk_child" ] && [ ! -L "$deploy_walk_child" ]; then
+      deploy_walk_layer "$deploy_walk_child" "$deploy_walk_next" "$deploy_walk_layer_name" "$deploy_walk_package_root" || return 1
+    else
+      deploy_walk_target="$HOME/$deploy_walk_next"
       deploy_add_entry "$deploy_walk_target" "$deploy_walk_child" "$deploy_walk_layer_name"
     fi
   done

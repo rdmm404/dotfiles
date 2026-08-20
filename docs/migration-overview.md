@@ -58,11 +58,15 @@ platforms/
 tests/
 ```
 
-Files are deployed in this order:
+Stow packages are deployed in this order:
 
 ```text
 global -> current platform
 ```
+
+`global/` contains shared configuration and tracked agent files under the
+package's `~/.agents` and `~/.claude` paths. Its generated `skills-lock.json`
+metadata is intentionally ignored by Stow.
 
 A platform layer may add a platform file, but it must not silently replace a file owned by `global/`. Shared entry files will load platform-specific fragments when needed.
 
@@ -75,6 +79,7 @@ A platform layer may add a platform file, but it must not silently replace a fil
 - Restructure the repository rather than preserve the current package layout.
 - Replace the Makefile with one root-level `dot` command.
 - Keep GNU Stow as the file-linking tool.
+- Keep tracked agent skills in the shared `global/` layer.
 - Start setup only after the repository has been cloned.
 - Use a staged setup, plus one full `dot bootstrap` command.
 - Show a plan and ask before making changes.

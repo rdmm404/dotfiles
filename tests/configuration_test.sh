@@ -31,6 +31,8 @@ configuration_deploy_test() {
   assert_linked "$configuration_tmp/home/.zshrc" || { rm -rf "$configuration_tmp"; return 1; }
   assert_linked "$configuration_tmp/home/.config/zsh/platform.zsh" || { rm -rf "$configuration_tmp"; return 1; }
   assert_linked "$configuration_tmp/home/.config/vscode/styles.css" || { rm -rf "$configuration_tmp"; return 1; }
+  assert_linked "$configuration_tmp/home/.agents/skills/ask-matt/SKILL.md" || { rm -rf "$configuration_tmp"; fail 'agent skill missing'; return 1; }
+  [ ! -e "$configuration_tmp/home/skills-lock.json" ] || { rm -rf "$configuration_tmp"; fail 'skills lock file was linked'; return 1; }
   [ -f "$configuration_tmp/home/.config/rtk/config.toml" ] || { rm -rf "$configuration_tmp"; fail 'RTK config missing'; return 1; }
   [ -f "$configuration_tmp/home/.config/starship.toml" ] || { rm -rf "$configuration_tmp"; fail 'Starship config missing'; return 1; }
   [ -f "$configuration_tmp/home/.config/vscode/settings.json" ] || { rm -rf "$configuration_tmp"; fail 'Linux VS Code settings missing'; return 1; }

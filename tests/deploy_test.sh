@@ -19,6 +19,35 @@ clean_deploy_test() {
   cleanup_fixture
 }
 
+global_agent_files_deploy_test() {
+  make_fixture || return 1
+  mkdir -p "$TEST_ROOT/global/.config" "$TEST_ROOT/global/.agents/skills/example" \
+    "$TEST_ROOT/platforms/wsl/.config"
+  printf 'shared\n' > "$TEST_ROOT/global/.config/shared"
+  printf 'platform\n' > "$TEST_ROOT/platforms/wsl/.config/platform"
+  printf 'skill\n' > "$TEST_ROOT/global/.agents/skills/example/SKILL.md"
+  printf 'ignored\n' > "$TEST_ROOT/global/skills-lock.json"
+  printf '%s\n' '^skills-lock\.json$' > "$TEST_ROOT/global/.stow-local-ignore"
+  TEST_REAL_STOW=1 run_dot deploy --yes || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
+  [ -L "$TEST_HOME/.agents/skills/example/SKILL.md" ] || {
+    cleanup_fixture
+    fail 'skill file was not linked'
+    return 1
+  }
+  [ ! -e "$TEST_HOME/skills-lock.json" ] || {
+    cleanup_fixture
+    fail 'ignored skills lock file was linked'
+    return 1
+  }
+  TEST_REAL_STOW=1 run_dot undeploy --yes || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
+  [ ! -e "$TEST_HOME/.agents/skills/example/SKILL.md" ] || {
+    cleanup_fixture
+    fail 'skill link was not removed by undeploy'
+    return 1
+  }
+  cleanup_fixture
+}
+
 repeat_deploy_test() {
   make_config_fixture || return 1
   TEST_REAL_STOW=1 run_dot deploy --yes || { cleanup_fixture; return 1; }
@@ -281,4 +310,4 @@ EOF
   cleanup_fixture
 }
 
-clean_deploy_test && repeat_deploy_test && conflict_refusal_test && adoption_and_restore_test && legacy_link_replacement_test && folded_legacy_link_test && broken_legacy_link_test && source_adapter_link_test && repository_escape_link_test && dangling_repository_escape_link_test && empty_directory_preservation_test && backup_metadata_validation_test && backup_overlap_validation_test && backup_duplicate_validation_test && backup_symlink_id_validation_test && ancestor_backup_restore_test && undeploy_safety_test && backup_prune_test && partial_failure_test && undeploy_rollback_test
+clean_deploy_test && global_agent_files_deploy_test && repeat_deploy_test && conflict_refusal_test && adoption_and_restore_test && legacy_link_replacement_test && folded_legacy_link_test && broken_legacy_link_test && source_adapter_link_test && repository_escape_link_test && dangling_repository_escape_link_test && empty_directory_preservation_test && backup_metadata_validation_test && backup_overlap_validation_test && backup_duplicate_validation_test && backup_symlink_id_validation_test && ancestor_backup_restore_test && undeploy_safety_test && backup_prune_test && partial_failure_test && undeploy_rollback_test

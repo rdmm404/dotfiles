@@ -42,6 +42,10 @@ make_fixture() {
   cp -R "$TEST_REPO/installers" "$TEST_ROOT/installers"
   mkdir -p "$TEST_ROOT/manifests" "$TEST_ROOT/tests"
   cp -R "$TEST_REPO/global" "$TEST_ROOT/global"
+  # Most deployment fixtures exercise configuration only; skills have a
+  # dedicated fixture so the full tracked package is not copied into every test.
+  rm -rf "$TEST_ROOT/global/.agents" "$TEST_ROOT/global/.claude" \
+    "$TEST_ROOT/global/skills-lock.json" "$TEST_ROOT/global/.stow-local-ignore"
   cp -R "$TEST_REPO/platforms" "$TEST_ROOT/platforms"
   cp "$TEST_REPO/manifests/catalog" "$TEST_ROOT/manifests/catalog"
   printf '%s\n' '# fixture' > "$TEST_ROOT/manifests/core"

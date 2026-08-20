@@ -48,7 +48,7 @@ Follow the green thread: plan, confirm, change, and verify. Keep the code and te
 - Add failing fake-home tests for clean and repeated deployment.
 - Add failing tests for conflict refusal and safe legacy-link replacement.
 - Add failing tests for adoption, restore, cleanup, and undeploy.
-- Implement deployment of `global/` followed by the current platform until the tests pass.
+- Implement deployment of `global/` (including tracked agent skills) followed by the current platform until the tests pass.
 - Detect all target conflicts before changing anything.
 - Implement `deploy --adopt` with timestamped backups.
 - Implement backup list, restore, remove, and prune commands.

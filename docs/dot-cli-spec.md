@@ -75,7 +75,7 @@ Output includes:
 - detected platform;
 - selected manifests;
 - missing, installed, and unsupported applications;
-- global and platform layers;
+- global and platform packages, including tracked agent skills in `global/`;
 - existing-file conflicts;
 - whether adoption would be required.
 
@@ -112,7 +112,8 @@ It does not upgrade installed applications and does not deploy configuration.
 
 ### `dot deploy`
 
-Links the shared and current-platform configuration into the home directory.
+Links the shared and current-platform configuration, including tracked agent
+skills stored in `global/`, into the home directory.
 
 ```bash
 ./dot deploy
@@ -181,6 +182,7 @@ Arguments:
 Behavior:
 
 - show every layer and link that will be removed;
+- include tracked agent skill links from `global/` while leaving Omarchy-provided skills alone;
 - ask for confirmation;
 - use Stow to remove owned links;
 - leave applications, normal files, directories, backups, and repository files alone;

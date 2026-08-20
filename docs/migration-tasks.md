@@ -94,7 +94,8 @@ Testing rules:
 ### Stow planning
 
 - [x] Add `lib/deploy.sh`.
-- [x] Plan the `global/` layer before the current platform layer.
+- [x] Plan the `global/` layer, including tracked agent skills, before the current platform layer.
+- [x] Honor `global/.stow-local-ignore` rules in the deployment plan.
 - [x] List every target link before changing anything.
 - [x] Detect normal files, unrelated links, broken links, and repository-owned links.
 - [x] Treat old links into this repository as safe legacy links that can be replaced.
@@ -235,7 +236,7 @@ Write each failing fake-home test before implementing its behavior:
 ### Cleanup
 
 - [x] Update `.gitignore` for local platform settings and runtime state.
-- [x] Move configuration deployment out of the old Makefile; retain only the scoped `stow-skills` compatibility target.
+- [x] Move configuration and skills deployment out of the old Makefile and into the `dot` lifecycle.
 - [x] Remove old package directories after the new layout is proven.
 - [x] Confirm unrelated TDD skill changes remain untouched.
 
