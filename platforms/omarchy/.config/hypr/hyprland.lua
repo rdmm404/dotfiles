@@ -52,7 +52,12 @@ end
 o.window("org.gnome.Nautilus", { tag = "+floating-window" })
 
 -- Float only the Omarchy Spotify music window, not every Quickshell window.
+-- Hyprland accepts one dynamic tag per rule. The panel's title is assigned
+-- after its surface is created, so the title rule adds a second tag and the
+-- later tag rule applies the size override after Omarchy's 875x600 default.
 o.window({ class = "^org\\.quickshell$", title = "^Omarchy Spotify$" }, { tag = "+floating-window" })
+o.window({ class = "^org\\.quickshell$", title = "^Omarchy Spotify$" }, { tag = "+spotify-window" })
+o.window({ tag = "spotify-window" }, { size = { 1200, 823 } })
 
 -- Open the WhatsApp web app on workspace 6 (the secondary monitor).
 o.window("^.+-web\\.whatsapp\\.com__.*$", { workspace = "6" })
