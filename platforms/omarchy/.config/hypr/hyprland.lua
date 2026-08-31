@@ -28,6 +28,13 @@ require("default.hypr.toggles")
 
 -- Add any other personal Hyprland configuration below.
 
+-- Keep directional focus/swap commands on the current monitor.
+hl.config({
+  binds = {
+    window_direction_monitor_fallback = false,
+  },
+})
+
 -- Give monitor names local aliases for workspace rules.
 local primary_monitor = "DP-1"
 local secondary_monitor = "DP-2"
@@ -63,4 +70,4 @@ o.window({ tag = "spotify-window" }, { size = { 1200, 823 } })
 o.window("^.+-web\\.whatsapp\\.com__.*$", { workspace = "6" })
 
 -- Added by hyprmoncfg: its generated monitor rules load last, so nothing before this can override the applied layout.
-dofile((os.getenv("XDG_CONFIG_HOME") or os.getenv("HOME") .. "/.config") .. "/hypr/hyprmoncfg-monitors.lua")
+dofile(os.getenv("HOME") .. "/.config/hypr/hyprmoncfg-monitors.lua")

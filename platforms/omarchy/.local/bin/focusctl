@@ -1,0 +1,150 @@
+#!/usr/bin/env bash
+
+set -u
+
+plugin_id='bibek.focusd'
+state_dir="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}"
+state_file="$state_dir/focusctl-session"
+lock_file="$state_dir/focusctl.lock"
+log_file="$state_dir/focusctl.log"
+break_sound='/usr/share/sounds/freedesktop/stereo/complete.oga'
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+focus_sound="$script_dir/../share/focusctl/alarm-clock-elapsed.oga"
+
+log_failure() {
+  printf '%s focusctl: %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >> "$log_file" 2>/dev/null || true
+}
+
+normalize_session() {
+  case "$1" in
+    work|work-paused)
+      printf '%s\n' focus
+      ;;
+    short-break|short-break-paused|long-break|long-break-paused)
+      printf '%s\n' break
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+prime_state() {
+  local status_json session
+
+  status_json=$(focusd status 2>/dev/null) || return 0
+  session=$(jq -r '.alt // empty' <<< "$status_json" 2>/dev/null) || return 0
+  session=$(normalize_session "$session") || return 0
+  printf '%s\n' "$session" > "$state_file" || log_failure "could not write state file"
+}
+
+play_sound() {
+  local sound_file="$1"
+
+  if [[ ! -r "$sound_file" ]]; then
+    log_failure "sound file is not readable: $sound_file"
+    return 0
+  fi
+
+  if [[ ! -x /usr/bin/pw-play ]]; then
+    log_failure 'audio player not found: /usr/bin/pw-play'
+    return 0
+  fi
+
+  (
+    if ! /usr/bin/pw-play "$sound_file" >/dev/null 2>&1; then
+      log_failure "could not play sound: $sound_file"
+    fi
+  ) >/dev/null 2>&1 &
+}
+
+start_session() {
+  rm -f "$state_file"
+
+  if ! omarchy plugin enable "$plugin_id"; then
+    return 1
+  fi
+
+  if ! focusd start; then
+    omarchy plugin disable "$plugin_id" >/dev/null 2>&1 || true
+    rm -f "$state_file"
+    return 1
+  fi
+
+  prime_state
+}
+
+stop_session() {
+  local focusd_status=0
+  local plugin_status=0
+
+  focusd stop || focusd_status=$?
+  omarchy plugin disable "$plugin_id" || plugin_status=$?
+  rm -f "$state_file"
+
+  if (( focusd_status != 0 )); then
+    return "$focusd_status"
+  fi
+  return "$plugin_status"
+}
+
+transition() {
+  local next_session="$1"
+  local previous_session=''
+  local sound_file
+
+  case "$next_session" in
+    focus)
+      sound_file="$focus_sound"
+      ;;
+    break)
+      sound_file="$break_sound"
+      ;;
+    *)
+      printf 'Usage: %s transition {focus|break}\n' "$0" >&2
+      return 2
+      ;;
+  esac
+
+  mkdir -p "$state_dir" 2>/dev/null || {
+    log_failure "could not create runtime directory: $state_dir"
+    return 0
+  }
+
+  (
+    flock -x 9
+
+    if [[ -r "$state_file" ]]; then
+      read -r previous_session < "$state_file"
+    fi
+
+    printf '%s\n' "$next_session" > "$state_file" || {
+      log_failure 'could not write state file'
+      exit 0
+    }
+
+    if [[ -n "$previous_session" && "$previous_session" != "$next_session" ]]; then
+      play_sound "$sound_file"
+    fi
+  ) 9>"$lock_file"
+}
+
+case "${1:-}" in
+  start)
+    start_session
+    ;;
+  stop)
+    stop_session
+    ;;
+  transition)
+    [[ $# -eq 2 ]] || {
+      printf 'Usage: %s transition {focus|break}\n' "$0" >&2
+      exit 2
+    }
+    transition "$2"
+    ;;
+  *)
+    printf 'Usage: %s {start|stop|transition {focus|break}}\n' "$0" >&2
+    exit 2
+    ;;
+esac
