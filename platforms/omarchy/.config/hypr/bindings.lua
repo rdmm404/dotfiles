@@ -55,5 +55,5 @@ o.bind("SUPER + ALT + P", "Start Focusd", "focusctl start")
 o.bind("SUPER + ALT + SHIFT + P", "Stop Focusd", "focusctl stop")
 
 -- Open the Omarchy Spotify plugin instead of the default Music binding.
-hl.unbind("SUPER + SHIFT + M")
-o.bind("SUPER + SHIFT + M", "Spotify", "omarchy shell shell summon quickshell.spotify")
+-- hl.unbind("SUPER + SHIFT + M")
+-- o.bind("SUPER + SHIFT + M", "Spotify", "omarchy shell shell summon quickshell.spotify")
