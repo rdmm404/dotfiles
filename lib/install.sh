@@ -36,58 +36,69 @@ dot_install_zap() {
 }
 
 install_prepare() {
-  if ! platform_detect; then
-    return 1
-  fi
+  platform_detect || return 1
   platform_load_installer "$PLATFORM" || return 1
   manifest_validate_all || return 1
   manifest_load_selected "${1:-0}" || return 1
   return 0
 }
 
-install_print_header() {
+install_print_context() {
   printf 'Platform: %s\n' "$(platform_label "$PLATFORM")"
-  printf 'Manifests:\n'
-  printf '  - core\n  - development\n'
-  if [ "${1:-0}" = 1 ]; then
-    printf '  - optional\n'
-  fi
+  printf 'Manifests: core, development'
+  [ "${1:-0}" = 1 ] && printf ', optional'
+  printf '\n'
 }
 
-install_plan() {
+# Inspect the selected entries once. Installation is deliberately a direct
+# operation: this is a status report, not a separate approval/plan phase.
+install_scan() {
   INSTALL_MISSING_ENTRIES=''
   INSTALL_MISSING_COUNT=0
-  INSTALL_PLAN_ERROR=0
+  INSTALL_UNCHANGED_COUNT=0
+  INSTALL_UNSUPPORTED_COUNT=0
+  INSTALL_UNSUPPORTED_NAMES=''
+  INSTALL_SCAN_ERROR=0
   install_entry=''
   while IFS= read -r install_entry || [ -n "$install_entry" ]; do
     [ -z "$install_entry" ] && continue
     if installer_status "$install_entry"; then
       case "$INSTALLER_STATUS" in
         installed)
-          dot_ok "already installed: $install_entry"
+          INSTALL_UNCHANGED_COUNT=$((INSTALL_UNCHANGED_COUNT + 1))
+          [ "${INSTALL_VERBOSE:-0}" = 1 ] && dot_ok "already installed: $install_entry"
           ;;
         missing)
-          dot_plan "will install: $install_entry"
+          dot_change "will install: $install_entry"
           INSTALL_MISSING_ENTRIES="${INSTALL_MISSING_ENTRIES}${install_entry}
 "
           INSTALL_MISSING_COUNT=$((INSTALL_MISSING_COUNT + 1))
           ;;
         unsupported)
-          dot_skip "unsupported on $PLATFORM: $install_entry"
+          INSTALL_UNSUPPORTED_COUNT=$((INSTALL_UNSUPPORTED_COUNT + 1))
+          INSTALL_UNSUPPORTED_NAMES="${INSTALL_UNSUPPORTED_NAMES}${install_entry}, "
           ;;
         *)
           dot_error "installer returned an invalid status for $install_entry"
-          INSTALL_PLAN_ERROR=1
+          INSTALL_SCAN_ERROR=1
           ;;
       esac
     else
       dot_error "unknown application for $PLATFORM: $install_entry"
-      INSTALL_PLAN_ERROR=1
+      INSTALL_SCAN_ERROR=1
     fi
   done <<EOF
 $SELECTED_ENTRIES
 EOF
-  [ "$INSTALL_PLAN_ERROR" = 0 ]
+
+  if [ "$INSTALL_UNCHANGED_COUNT" -gt 0 ]; then
+    dot_ok "unchanged: $INSTALL_UNCHANGED_COUNT application(s)"
+  fi
+  if [ "$INSTALL_UNSUPPORTED_COUNT" -gt 0 ]; then
+    INSTALL_UNSUPPORTED_NAMES="${INSTALL_UNSUPPORTED_NAMES%, }"
+    dot_skip "unsupported on $PLATFORM: $INSTALL_UNSUPPORTED_NAMES ($INSTALL_UNSUPPORTED_COUNT application(s))"
+  fi
+  [ "$INSTALL_SCAN_ERROR" = 0 ]
 }
 
 install_execute() {
@@ -118,62 +129,37 @@ EOF
 }
 
 install_command() {
-  include_optional="${1:-0}"
-  DOT_YES="${2:-0}"
-  install_prepare "$include_optional" || return 1
-  install_print_header "$include_optional"
-  install_plan || return 1
+  install_include="${1:-0}"
+  install_dry_run="${2:-0}"
+  INSTALL_VERBOSE="${3:-0}"
+  install_prepare "$install_include" || return 1
+  install_print_context "$install_include"
+  install_scan || return 1
   if [ "$INSTALL_MISSING_COUNT" = 0 ]; then
     dot_ok 'nothing to install'
     return 0
   fi
-  if ! dot_confirm; then
-    dot_warn 'installation cancelled'
-    return 1
+  if [ "$install_dry_run" = 1 ]; then
+    dot_ok 'dry run: no applications changed'
+    return 0
   fi
   install_execute
 }
 
 bootstrap_command() {
-  include_optional="${1:-0}"
-  DOT_YES="${2:-0}"
-  DOCTOR_ALLOW_MISSING=1
-  DEPLOY_ALLOW_MISSING_STOW=1
-  doctor_command --for-bootstrap || return 1
-  install_prepare "$include_optional" || return 1
-  install_print_header "$include_optional"
-  install_plan || return 1
-  deploy_prepare || return 1
-  deploy_build_plan || return 1
-  deploy_print_plan
-  if [ -n "$DEPLOY_CONFLICTS" ]; then
-    dot_error 'bootstrap stopped; resolve deployment conflicts before installing'
-    return 1
-  fi
-  if ! dot_confirm; then
-    dot_warn 'bootstrap cancelled'
-    return 1
-  fi
-  BOOTSTRAP_PLAN_LAYERS="$DEPLOY_ACTIVE_LAYERS"
-  BOOTSTRAP_PLAN_TARGETS="$DEPLOY_TARGETS"
-  BOOTSTRAP_PLAN_RECORDS="$DEPLOY_ENTRY_RECORDS"
-  BOOTSTRAP_PLAN_CONFLICTS="$DEPLOY_CONFLICTS"
-  install_execute || return 1
-  # Installation can change HOME and can install Stow, so rebuild the plan
-  # before any deployment and refuse to use stale targets.
-  DEPLOY_ALLOW_MISSING_STOW=0
-  deploy_prepare || return 1
-  deploy_build_plan || return 1
-  if [ "$DEPLOY_ACTIVE_LAYERS" != "$BOOTSTRAP_PLAN_LAYERS" ] || \
-    [ "$DEPLOY_TARGETS" != "$BOOTSTRAP_PLAN_TARGETS" ] || \
-    [ "$DEPLOY_ENTRY_RECORDS" != "$BOOTSTRAP_PLAN_RECORDS" ] || \
-    [ "$DEPLOY_CONFLICTS" != "$BOOTSTRAP_PLAN_CONFLICTS" ]; then
-    dot_error 'bootstrap deployment plan changed during installation; no deployment performed'
-    return 1
-  fi
-  # The combined confirmation above is also the deploy confirmation. Bootstrap
-  # never enables adoption, even when the plan contains conflicts.
-  deploy_execute 0 1 1 || return 1
-  doctor_command || return 1
-  dot_ok 'bootstrap complete'
+  bootstrap_include="${1:-0}"
+  bootstrap_dry_run="${2:-0}"
+  bootstrap_verbose="${3:-0}"
+  bootstrap_replace="${4:-0}"
+
+  # Bootstrap intentionally composes the two public operations. It does not
+  # run doctor, retain a second snapshot/plan, or promise an all-or-nothing
+  # transaction across package installation and deployment.
+  install_command "$bootstrap_include" "$bootstrap_dry_run" "$bootstrap_verbose" || return 1
+
+  bootstrap_files_args=(deploy)
+  [ "$bootstrap_dry_run" = 1 ] && bootstrap_files_args[${#bootstrap_files_args[@]}]=--dry-run
+  [ "$bootstrap_verbose" = 1 ] && bootstrap_files_args[${#bootstrap_files_args[@]}]=--verbose
+  [ "$bootstrap_replace" = 1 ] && bootstrap_files_args[${#bootstrap_files_args[@]}]=--replace
+  files_command "${bootstrap_files_args[@]}"
 }

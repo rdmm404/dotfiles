@@ -1,3 +1,5 @@
+> **Historical / superseded:** This migration document records earlier plans and decisions. For the implemented CLI contract, see [`docs/dot-cli-spec.md`](dot-cli-spec.md). It is retained for history, not as current command documentation.
+
 # Dotfiles migration tasks
 
 This checklist breaks the migration plan into small tasks. Complete the phases in order. Each task should leave the repository usable.

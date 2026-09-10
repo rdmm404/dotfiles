@@ -20,7 +20,7 @@ configuration_deploy_test() {
   configuration_tmp=$(mktemp -d "${TMPDIR:-/tmp}/dot-config.XXXXXX") || return 1
   mkdir -p "$configuration_tmp/home"
   if ! HOME="$configuration_tmp/home" DOT_ROOT="$TEST_REPO" DOT_PLATFORM="$configuration_platform" \
-    STOW_COMMAND="$(command -v stow)" "$TEST_REPO/dot" deploy --yes \
+    STOW_COMMAND="$(command -v stow)" "$TEST_REPO/dot" deploy \
     >"$configuration_tmp/output" 2>"$configuration_tmp/error"; then
     cat "$configuration_tmp/output"
     cat "$configuration_tmp/error" >&2

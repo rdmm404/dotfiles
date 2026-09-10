@@ -6,7 +6,7 @@ TEST_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 omarchy_command_test() {
   make_fixture || return 1
   printf '%s\n' 'rtk' > "$TEST_ROOT/manifests/core"
-  DOT_PLATFORM=omarchy run_dot install --yes || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
+  TEST_PATH="$TEST_BIN" DOT_PLATFORM=omarchy run_dot install || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
   assert_contains "$TEST_TMP/commands" 'omarchy pkg aur add rtk' || { cleanup_fixture; return 1; }
   cleanup_fixture
 }
@@ -31,7 +31,7 @@ printf '# fake zap installer\n'
 EOF
   chmod +x "$TEST_BIN/zsh" "$TEST_BIN/curl"
   printf '%s\n' 'zsh-autopair' > "$TEST_ROOT/manifests/core"
-  DOT_PLATFORM=macos run_dot install --yes || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
+  DOT_PLATFORM=macos run_dot install || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
   assert_contains "$TEST_TMP/commands" 'hlissner/zsh-autopair' || { cleanup_fixture; return 1; }
   assert_not_contains "$TEST_TMP/commands" 'brew install zsh-autopair' || { cleanup_fixture; return 1; }
   cleanup_fixture
@@ -40,7 +40,7 @@ EOF
 macos_cask_mapping_test() {
   make_fixture || return 1
   printf '%s\n' 'nerd-font' > "$TEST_ROOT/manifests/core"
-  DOT_PLATFORM=macos run_dot install --yes || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
+  DOT_PLATFORM=macos run_dot install || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
   assert_contains "$TEST_TMP/commands" 'brew install --cask font-fira-code-nerd' || { cleanup_fixture; return 1; }
   cleanup_fixture
 }
@@ -50,7 +50,7 @@ macos_zap_plugin_status_test() {
   mkdir -p "$TEST_HOME/.local/share/zap/plugins/zsh-autopair"
   : > "$TEST_HOME/.local/share/zap/plugins/zsh-autopair/autopair.zsh"
   printf '%s\n' 'zsh-autopair' > "$TEST_ROOT/manifests/core"
-  DOT_PLATFORM=macos run_dot plan || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
+  DOT_PLATFORM=macos run_dot install --dry-run --verbose || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
   assert_contains "$TEST_OUTPUT" 'already installed: zsh-autopair' || { cleanup_fixture; return 1; }
   assert_not_contains "$TEST_OUTPUT" 'will install: zsh-autopair' || { cleanup_fixture; return 1; }
   cleanup_fixture
@@ -61,7 +61,7 @@ wsl_zap_plugin_status_test() {
   mkdir -p "$TEST_HOME/.local/share/zap/plugins/zsh-autopair"
   : > "$TEST_HOME/.local/share/zap/plugins/zsh-autopair/autopair.zsh"
   printf '%s\n' 'zsh-autopair' > "$TEST_ROOT/manifests/core"
-  run_dot plan || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
+  run_dot install --dry-run --verbose || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
   assert_contains "$TEST_OUTPUT" 'already installed: zsh-autopair' || { cleanup_fixture; return 1; }
   assert_not_contains "$TEST_OUTPUT" 'will install: zsh-autopair' || { cleanup_fixture; return 1; }
   cleanup_fixture
@@ -87,7 +87,7 @@ printf '# fake zap installer\n'
 EOF
   chmod +x "$TEST_BIN/zsh" "$TEST_BIN/curl"
   printf '%s\n' 'zsh-autopair' > "$TEST_ROOT/manifests/core"
-  run_dot install --yes || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
+  run_dot install || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
   assert_contains "$TEST_TMP/commands" 'hlissner/zsh-autopair' || { cleanup_fixture; return 1; }
   assert_not_contains "$TEST_TMP/commands" 'apt-get install -y zsh-autopair' || { cleanup_fixture; return 1; }
   cleanup_fixture
@@ -101,7 +101,7 @@ exit 0
 EOF
   chmod +x "$TEST_BIN/batcat"
   printf '%s\n' 'bat' > "$TEST_ROOT/manifests/core"
-  run_dot plan || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
+  run_dot install --dry-run --verbose || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
   assert_contains "$TEST_OUTPUT" 'already installed: bat' || { cleanup_fixture; return 1; }
   cleanup_fixture
 }
@@ -121,7 +121,7 @@ printf '# fake zap installer\n'
 EOF
   chmod +x "$TEST_BIN/zsh" "$TEST_BIN/curl"
   printf '%s\n' 'zsh' > "$TEST_ROOT/manifests/core"
-  run_dot install --yes || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
+  run_dot install || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
   assert_contains "$TEST_TMP/commands" 'zap-install --branch release-v1' || { cleanup_fixture; return 1; }
   cleanup_fixture
 }
@@ -135,7 +135,7 @@ exit 1
 EOF
   chmod +x "$TEST_BIN/omarchy"
   printf '%s\n' 'rtk' > "$TEST_ROOT/manifests/core"
-  if DOT_PLATFORM=omarchy run_dot install --yes; then
+  if TEST_PATH="$TEST_BIN" DOT_PLATFORM=omarchy run_dot install; then
     cleanup_fixture
     fail 'failed Omarchy setup command unexpectedly succeeded'
     return 1
@@ -149,7 +149,7 @@ pacman_fallback_test() {
   rm -f "$TEST_BIN/omarchy"
   printf '%s\n' 'fallback-app' >> "$TEST_ROOT/manifests/catalog"
   printf '%s\n' 'fallback-app' > "$TEST_ROOT/manifests/core"
-  TEST_PATH="$TEST_BIN" DOT_PLATFORM=omarchy run_dot install --yes || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
+  TEST_PATH="$TEST_BIN" DOT_PLATFORM=omarchy run_dot install || { cat "$TEST_ERROR" >&2; cleanup_fixture; return 1; }
   assert_contains "$TEST_TMP/commands" 'pacman -S --needed --noconfirm fallback-app' || { cleanup_fixture; return 1; }
   cleanup_fixture
 }

@@ -1,392 +1,164 @@
-# `dot` command specification
+# `dot` CLI specification
 
-## Purpose
+This is the current specification for the implemented, simplified `dot`
+command. It is a Bash entry point with Python-backed filesystem operations.
 
-`dot` is the single command for checking, installing, deploying, and backing up these dotfiles. It wraps GNU Stow and the native setup tools for each supported platform.
+## General contract
 
-It must run with Bash 3.2 and remain small enough to understand without special shell knowledge.
+- Supported platforms are macOS, WSL, and Omarchy; the active platform is
+  detected automatically.
+- `global/` is deployed before `platforms/<platform>/`.
+- `--dry-run` previews an operation without writing.
+- There are no routine confirmation prompts. `dot install` and `dot bootstrap`
+  are direct operations. A deploy with conflicts and no `--replace` asks one
+  question only when standard input is a TTY; answering yes permits backup and
+  replacement. Non-interactive use must pass `--replace` to replace conflicts.
+- Successful work is retained if a later step fails. Operations are not
+  transactions and do not roll back.
+- Invalid command usage exits with status 2; operation failures exit with
+  status 1.
 
-## Basic rules
-
-- Detect macOS, WSL, or Omarchy automatically.
-- Print the detected platform before a command that can make changes.
-- Show planned work before doing it.
-- Ask for confirmation before installing, adopting, restoring, removing, pruning, or running the full bootstrap.
-- Never overwrite an existing file during a normal deploy.
-- Be safe to run more than once.
-- Return `0` on success, `1` on an operation failure, and `2` for invalid command usage.
-- Use clear output labels:
-
-```text
-[plan] will install: rtk
-[ok]   already installed: rg
-[skip] unsupported on WSL: ghostty
-[warn] existing file: ~/.zshrc
-[error] deploy stopped; no files changed
-```
+The removed `plan`, `--adopt`, and `--yes` interfaces are not part of the
+current CLI.
 
 ## Commands
 
 ### `dot doctor`
 
-Checks whether the current system is ready.
-
 ```bash
-./dot doctor
+./dot doctor [--verbose]
 ```
 
-Checks include:
-
-- supported platform;
-- required commands;
-- readable manifests;
-- valid repository layout;
-- broken or unexpected links;
-- deploy conflicts;
-- shell syntax;
-- required application status;
-- dirty tracked configuration after an Omarchy update.
-
-It does not change anything.
-
-Output ends with either:
-
-```text
-[ok] doctor found no blocking problems
-```
-
-or a short list of problems and suggested next commands.
-
-### `dot plan`
-
-Shows what bootstrap would do without changing anything.
-
-```bash
-./dot plan
-./dot plan --include optional
-```
-
-Arguments:
-
-- `--include optional`: include the optional manifest.
-
-Output includes:
-
-- detected platform;
-- selected manifests;
-- missing, installed, and unsupported applications;
-- global and platform packages, including tracked agent skills in `global/`;
-- existing-file conflicts;
-- whether adoption would be required.
+Checks the current deployment and the core, development, and optional
+application manifests without changing anything. Missing required applications
+or deployment problems fail the check; missing optional applications are
+warnings, and unsupported applications are skipped.
 
 ### `dot install`
 
-Installs missing applications from the universal manifests.
-
 ```bash
-./dot install
-./dot install --include optional
+./dot install [--include optional] [--dry-run] [--verbose]
 ```
 
-Default selection:
-
-```text
-core + development
-```
-
-Arguments:
-
-- `--include optional`: also install optional applications.
-- `--yes`: accept the shown install plan without an interactive prompt.
-
-Behavior:
-
-1. Read logical application names from the selected manifests.
-2. Ask the active platform installer for each application's status.
-3. Show the plan.
-4. Ask for confirmation unless `--yes` was given.
-5. Install only missing applications.
-6. Report failures without hiding successful work.
-
-It does not upgrade installed applications and does not deploy configuration.
-
-### `dot deploy`
-
-Links the shared and current-platform configuration, including tracked agent
-skills stored in `global/`, into the home directory.
-
-```bash
-./dot deploy
-./dot deploy --adopt
-./dot deploy --yes
-```
-
-Arguments:
-
-- `--adopt`: back up conflicting files, then deploy tracked versions.
-- `--yes`: accept a safe, conflict-free plan without prompting. It does not imply `--adopt`.
-
-Behavior:
-
-1. Plan `global/` first and the detected platform second.
-2. Check every target before changing anything.
-3. Without `--adopt`, stop if a normal file or unrelated link conflicts.
-4. With `--adopt`, show every conflict and backup destination.
-5. Ask for confirmation.
-6. Copy conflicts into a timestamped backup while keeping home-relative paths.
-7. Use Stow to create the links.
-8. Verify the created links.
-
-Do not call GNU Stow's native `--adopt` option.
+The default manifests are `core` and `development`; `--include optional` adds
+the optional manifest. Installation checks each logical application, installs
+only missing supported applications, and does not upgrade installed ones.
+`--dry-run` performs the scan only. `--verbose` lists unchanged applications.
+Installation is direct and does not require Python.
 
 ### `dot bootstrap`
 
-Runs the complete first-time setup.
-
 ```bash
-./dot bootstrap
-./dot bootstrap --include optional
-./dot bootstrap --yes
+./dot bootstrap [--include optional] [--dry-run] [--verbose] [--replace]
 ```
 
-Arguments:
+Runs `install` first and then `deploy` with the corresponding options. It is
+not a combined transaction: successful installations remain if deployment
+fails, and deployment has its normal conflict behavior. An installation
+failure prevents the deploy step.
 
-- `--include optional`: include optional applications.
-- `--yes`: accept the full shown plan without another prompt. Existing-file conflicts still stop deployment; it does not imply `--adopt`.
+### `dot deploy`
 
-Behavior:
+```bash
+./dot deploy [--dry-run] [--verbose] [--replace]
+```
 
-1. Run readiness checks.
-2. Build one combined install and deploy plan.
-3. Show the entire plan.
-4. Ask once for confirmation.
-5. Install missing applications.
-6. Deploy configuration only if installation completed well enough to do so safely.
-7. Run final checks and print any manual follow-up.
+Plans all non-ignored files in the global and active platform layers, then
+uses GNU Stow with no folding to create the links. `--replace` backs up and
+replaces conflicting home paths without prompting. Without it, a conflicting
+regular file, directory, or unrelated link is refused unless the one TTY
+prompt is answered yes. `--dry-run` never writes; `--verbose` shows individual
+paths.
 
-Bootstrap never adopts existing files automatically. The user must run `dot deploy --adopt` separately after reviewing conflicts.
+A regular target file with identical contents **and permission mode** is
+safe to deduplicate: it is replaced by the repository-owned link without a
+backup. Existing links owned by this repository are reconciled or relinked to
+the current source. Unrelated links are conflicts. Backups made for
+replacement are stored under `~/.local/state/dot/backups/<ID>/`.
+
+Dot does not support `.stowrc` option files in HOME or the repository, nor
+deploying `.stowrc` itself. Use `.stow-local-ignore` for ignore rules instead.
+
+### `dot add`
+
+```bash
+./dot add PATH... (--global|--platform) [--dry-run] [--verbose]
+```
+
+Imports paths inside `HOME` into the explicitly selected layer. Directories
+are traversed recursively; imported leaf files become repository links, while
+new repository directories are created as needed.
+
+- Repository-owned source links are skipped.
+- Existing repository files are never overwritten; differing files are an
+  error. Ownership conflicts with another layer are also errors.
+- The command does not stage Git changes or create commits.
+- Stow ignore rules are honored, and ignored paths are reported as skipped.
+- Explicit unmanaged symlink arguments are refused. Nested relative symlinks
+  are supported when their targets remain available in the selected layer;
+  importing a link without its target is refused.
+
+Paths must be inside `HOME` and outside the repository.
+Ignore files are interpreted with Python's `re` engine; arbitrary Perl-only
+regex constructs are not guaranteed to be compatible.
 
 ### `dot undeploy`
 
-Removes links created by the selected global and platform layers.
-
 ```bash
-./dot undeploy
-./dot undeploy --yes
+./dot undeploy [--dry-run] [--verbose]
 ```
 
-Arguments:
+Removes only links owned by this repository from the global and active platform
+layers. It leaves normal files, directories, unrelated links, applications,
+and repository files alone. There is no confirmation prompt.
 
-- `--yes`: accept the shown unlink plan without prompting.
+## Backups
 
-Behavior:
-
-- show every layer and link that will be removed;
-- include tracked agent skill links from `global/` while leaving Omarchy-provided skills alone;
-- ask for confirmation;
-- use Stow to remove owned links;
-- leave applications, normal files, directories, backups, and repository files alone;
-- warn instead of deleting a link that no longer points into this repository.
-
-### `dot backups list`
-
-Lists adoption backups.
+Backups are stored below `~/.local/state/dot/backups/`. These commands do not
+prompt; use `--dry-run` to inspect a mutating operation first.
 
 ```bash
 ./dot backups list
+./dot backups restore ID [--dry-run] [--replace]
+./dot backups remove ID [--dry-run]
+./dot backups prune --older-than Nd [--dry-run]
 ```
 
-Output includes timestamp, size, and file count. It changes nothing.
+`ID` is a backup identifier printed by `list`; `latest` selects the newest
+backup by directory modification time for `restore` or `remove`. `prune` removes backups older than the given
+number of days, such as `30d`.
 
-### `dot backups restore`
+Restore refuses unrelated current conflicts. `restore --replace` backs up
+those conflicts before restoring them; links owned by this repository may be
+replaced, as may directory trees containing only owned links and empty
+directories. A restored backup is retained until explicitly removed. Both the
+current `manifest.json` plus `files/` format and the legacy
+`.dot-backup-roots` backup format are readable.
 
-Restores one adoption backup.
+## Configuration and manifests
 
-```bash
-./dot backups restore <timestamp>
-./dot backups restore <timestamp> --yes
-```
-
-Arguments:
-
-- `<timestamp>`: an identifier printed by `backups list`.
-- `--yes`: accept the restore plan without prompting.
-
-Behavior:
-
-- show the files to restore;
-- allow replacement of links owned by this repository;
-- refuse unrelated conflicts rather than overwrite them;
-- ask for confirmation;
-- restore original home-relative paths;
-- keep the backup after a successful restore.
-
-### `dot backups remove`
-
-Deletes one saved backup.
-
-```bash
-./dot backups remove <timestamp>
-./dot backups remove <timestamp> --yes
-```
-
-It shows the backup's size and file count, then asks for confirmation. This cannot be undone.
-
-### `dot backups prune`
-
-Deletes backups older than a chosen age.
-
-```bash
-./dot backups prune --older-than 30d
-./dot backups prune --older-than 30d --yes
-```
-
-Arguments:
-
-- `--older-than <days>d`: required age, such as `30d` or `90d`.
-- `--yes`: accept the shown deletion list without prompting.
-
-It never removes anything unless at least one backup matches and the user confirms.
-
-### Help
-
-```bash
-./dot help
-./dot help <command>
-./dot --help
-```
-
-Help shows short examples and all accepted arguments. Invalid arguments print the relevant command help.
-
-## Manifests
+Configuration and application selection live in:
 
 ```text
+global/
+platforms/macos/
+platforms/wsl/
+platforms/omarchy/
 manifests/core
 manifests/development
 manifests/optional
 ```
 
-Format:
+Manifest files contain one logical application name per line; blank lines and
+`#` comments are ignored. Core and development are selected by default.
 
-```text
-# Comments begin with #.
-# Blank lines are ignored.
+## Dependencies
 
-stow
-zsh
-rg
-```
+- Bash 3.2+ for the command wrapper.
+- Python 3.7+ with its standard library for filesystem commands.
+- GNU Stow for `deploy` and the deployment portion of `bootstrap`; it is in
+  the core manifest, so `dot install` can install it.
 
-Rules:
-
-- one logical application name per line;
-- no versions or platform commands;
-- duplicate names are an error;
-- names must be known by every platform installer, even if that platform marks one unsupported.
-
-## Platform installer contract
-
-```text
-installers/macos.sh
-installers/wsl.sh
-installers/omarchy.sh
-```
-
-Each installer provides two operations for a logical application:
-
-1. report `installed`, `missing`, or `unsupported`;
-2. install a missing supported application.
-
-Omarchy prefers `omarchy-*` setup commands. macOS prefers Homebrew. WSL uses its native package tools and may mark desktop applications as externally managed or unsupported.
-
-## Code structure
-
-```text
-dot                     command parsing and dispatch only
-lib/cli.sh              help, prompts, and common output
-lib/platform.sh         platform detection
-lib/manifest.sh         plain-text manifest loading and checks
-lib/install.sh          shared install planning and flow
-lib/deploy.sh           Stow planning, conflict checks, and undeploy
-lib/backups.sh          backup list, restore, remove, and prune
-lib/doctor.sh           checks and final reports
-installers/macos.sh     Homebrew mappings
-installers/wsl.sh       WSL mappings
-installers/omarchy.sh   Omarchy and Arch mappings
-tests/                  shell and fake-home tests
-```
-
-Coding rules:
-
-- Bash 3.2-compatible syntax;
-- small functions with one clear job;
-- quote paths and arguments;
-- no `eval`;
-- no associative arrays or modern-only Bash helpers;
-- keep filesystem work in shared modules;
-- keep platform commands in installers;
-- do not hide command failures;
-- pass ShellCheck;
-- test all file-changing behavior against a temporary home directory.
-
-## Testing strategy
-
-### Development loop
-
-Use test-driven development for each public behavior:
-
-1. Add a small test that describes the expected command result.
-2. Run it and confirm it fails for the expected reason.
-3. Add the smallest implementation that makes it pass.
-4. Run the full fast test suite.
-5. Clean up the code without changing behavior.
-
-Do not unit-test private shell functions unless a complex pure function appears and cannot be covered clearly through the CLI.
-
-### Fast checks
-
-Run these without network access, package installation, or changes to the real home directory:
-
-- `bash -n` for `dot`, `lib/`, and `installers/`;
-- ShellCheck where available;
-- `zsh -n` for Zsh configuration;
-- manifest validation;
-- Starship and RTK parsing;
-- canonical-link checks;
-- checks for unwanted hard-coded `/Users/...` and `/home/...` paths.
-
-### Command and filesystem tests
-
-Invoke the real `./dot` command with a temporary `HOME` and real Stow. Cover:
-
-- clean and repeated deployment;
-- normal-file and unrelated-link conflicts;
-- safe replacement of old repository-owned links;
-- adoption and backup creation;
-- restore, remove, and prune behavior;
-- undeployment;
-- failure without partial changes.
-
-Assert exit codes, files, links, backup contents, and only the important output lines. Do not compare complete output snapshots.
-
-### Installer tests
-
-Automated tests must not call real Homebrew, Pacman, or Omarchy installers. Put recording fakes first in `PATH`, invoke the public command, and verify the chosen platform command and arguments.
-
-Use real package installation only during WSL/macOS smoke tests or in the disposable Omarchy VM.
-
-### Test layout
-
-```text
-tests/run                         small Bash test runner
-tests/helpers.sh                  temporary-home and assertion helpers
-tests/manifest_test.sh            manifest behavior
-tests/install_test.sh             public install and plan flows
-tests/deploy_test.sh              deploy and adoption lifecycle
-tests/backups_test.sh             restore, remove, and prune flows
-tests/installer_contract_test.sh  platform command selection
-tests/fixtures/                   test repositories and home trees
-tests/fakes/bin/                  recording package-manager commands
-```
-
-Do not add a test framework initially. Adopt one only if the small runner becomes harder to maintain than the tests themselves.
+`dot install` can run without Python and may install applications listed in the
+manifests, but it does not imply that Python will be installed. Filesystem
+commands fail clearly when Python is unavailable.

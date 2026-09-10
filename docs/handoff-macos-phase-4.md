@@ -1,3 +1,5 @@
+> **Historical / superseded:** This handoff records an earlier validation workflow. For the implemented CLI contract, see [`docs/dot-cli-spec.md`](dot-cli-spec.md). It is retained for history, not as current command documentation.
+
 # Handoff: macOS Phase 4 validation
 
 You are taking over the **Phase 4 macOS smoke test** for this dotfiles repository.

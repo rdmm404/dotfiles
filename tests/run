@@ -12,4 +12,11 @@ for test_file in "$TEST_DIR"/*_test.sh; do
     printf 'FAIL %s\n' "${test_file##*/}" >&2
   fi
 done
+printf '==> files_test.py\n'
+if python3 "$TEST_DIR/files_test.py"; then
+  printf 'PASS files_test.py\n'
+else
+  status=1
+  printf 'FAIL files_test.py\n' >&2
+fi
 exit "$status"

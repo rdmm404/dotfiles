@@ -1,3 +1,5 @@
+> **Historical / superseded:** This handoff records an earlier validation workflow. For the implemented CLI contract, see [`docs/dot-cli-spec.md`](dot-cli-spec.md). It is retained for history, not as current command documentation.
+
 # Handoff: Continue Phase 5 Omarchy VM testing
 
 ## Next-session focus

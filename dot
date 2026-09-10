@@ -1,6 +1,23 @@
 #!/usr/bin/env bash
 
-DOT_ROOT=${DOT_ROOT:-$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)}
+# Resolve a symlinked entry point unless DOT_ROOT was supplied by a caller.
+# This keeps installed symlinks pointing at the repository usable without a
+# platform-specific readlink extension.
+if [ -z "${DOT_ROOT:-}" ]; then
+  dot_entry="$0"
+  case "$dot_entry" in
+    /*) ;;
+    *) dot_entry="$(pwd)/$dot_entry" ;;
+  esac
+  while [ -L "$dot_entry" ]; do
+    dot_link="$(readlink "$dot_entry" 2>/dev/null)" || break
+    case "$dot_link" in
+      /*) dot_entry="$dot_link" ;;
+      *) dot_entry="$(dirname "$dot_entry")/$dot_link" ;;
+    esac
+  done
+  DOT_ROOT=$(CDPATH= cd -- "$(dirname "$dot_entry")" 2>/dev/null && pwd) || exit 1
+fi
 export DOT_ROOT
 
 . "$DOT_ROOT/lib/cli.sh" || exit 1
@@ -8,151 +25,92 @@ export DOT_ROOT
 . "$DOT_ROOT/lib/apps.sh" || exit 1
 . "$DOT_ROOT/lib/manifest.sh" || exit 1
 . "$DOT_ROOT/lib/install.sh" || exit 1
-. "$DOT_ROOT/lib/backups.sh" || exit 1
-. "$DOT_ROOT/lib/deploy.sh" || exit 1
 . "$DOT_ROOT/lib/doctor.sh" || exit 1
 
-plan_command() {
-  include_optional=0
-  while [ "$#" -gt 0 ]; do
-    case "$1" in
-      --include)
-        [ "$#" -ge 2 ] || { dot_bad_args 'missing value for --include' plan; return $?; }
-        [ "$2" = optional ] || { dot_bad_args "unsupported include value: $2" plan; return $?; }
-        include_optional=1
-        shift 2
-        ;;
-      --help|-h)
-        dot_command_usage plan
-        return 0
-        ;;
-      *)
-        dot_bad_args "invalid argument: $1" plan
-        return $?
-        ;;
-    esac
-  done
-
-  install_prepare "$include_optional" || return 1
-  install_print_header "$include_optional"
-  install_plan || return 1
-  deploy_plan_command || return 1
-}
-
 install_command_with_args() {
-  include_optional=0
-  yes=0
+  install_include=0
+  install_dry_run=0
+  install_verbose=0
   while [ "$#" -gt 0 ]; do
     case "$1" in
       --include)
         [ "$#" -ge 2 ] || { dot_bad_args 'missing value for --include' install; return $?; }
         [ "$2" = optional ] || { dot_bad_args "unsupported include value: $2" install; return $?; }
-        include_optional=1
+        install_include=1
         shift 2
         ;;
-      --yes)
-        yes=1
-        shift
-        ;;
-      --help|-h)
-        dot_command_usage install
-        return 0
-        ;;
-      *)
-        dot_bad_args "invalid argument: $1" install
-        return $?
-        ;;
+      --dry-run) install_dry_run=1; shift ;;
+      --verbose) install_verbose=1; shift ;;
+      --help|-h) dot_command_usage install; return 0 ;;
+      *) dot_bad_args "invalid argument: $1" install; return $? ;;
     esac
   done
-  install_command "$include_optional" "$yes"
-}
-
-deploy_command_with_args() {
-  deploy_command "$@"
-}
-
-undeploy_command_with_args() {
-  yes=0
-  while [ "$#" -gt 0 ]; do
-    case "$1" in
-      --yes) yes=1; shift ;;
-      --help|-h) dot_command_usage undeploy; return 0 ;;
-      *) dot_bad_args "invalid argument: $1" undeploy; return $? ;;
-    esac
-  done
-  deploy_undeploy_command "$yes"
-}
-
-backups_command_with_args() {
-  [ "$#" -gt 0 ] || { dot_bad_args 'missing backups subcommand' backups; return $?; }
-  backups_subcommand="$1"
-  shift
-  case "$backups_subcommand" in
-    list)
-      [ "$#" = 0 ] || { dot_bad_args "invalid argument: $1" 'backups list'; return $?; }
-      backups_list_command
-      ;;
-    restore)
-      [ "$#" -gt 0 ] || { dot_bad_args 'missing backup timestamp' 'backups restore'; return $?; }
-      backups_restore_command "$@"
-      ;;
-    remove)
-      [ "$#" -gt 0 ] || { dot_bad_args 'missing backup timestamp' 'backups remove'; return $?; }
-      backups_remove_command "$@"
-      ;;
-    prune)
-      backups_prune_command "$@"
-      ;;
-    *)
-      dot_bad_args "unknown backups subcommand: $backups_subcommand" backups
-      ;;
-  esac
+  install_command "$install_include" "$install_dry_run" "$install_verbose"
 }
 
 bootstrap_command_with_args() {
-  include_optional=0
-  yes=0
+  bootstrap_include=0
+  bootstrap_dry_run=0
+  bootstrap_verbose=0
+  bootstrap_replace=0
   while [ "$#" -gt 0 ]; do
     case "$1" in
       --include)
         [ "$#" -ge 2 ] || { dot_bad_args 'missing value for --include' bootstrap; return $?; }
         [ "$2" = optional ] || { dot_bad_args "unsupported include value: $2" bootstrap; return $?; }
-        include_optional=1
+        bootstrap_include=1
         shift 2
         ;;
-      --yes)
-        yes=1
-        shift
-        ;;
-      --help|-h)
-        dot_command_usage bootstrap
-        return 0
-        ;;
-      *)
-        dot_bad_args "invalid argument: $1" bootstrap
-        return $?
-        ;;
+      --dry-run) bootstrap_dry_run=1; shift ;;
+      --verbose) bootstrap_verbose=1; shift ;;
+      --replace) bootstrap_replace=1; shift ;;
+      --help|-h) dot_command_usage bootstrap; return 0 ;;
+      *) dot_bad_args "invalid argument: $1" bootstrap; return $? ;;
     esac
   done
-  bootstrap_command "$include_optional" "$yes"
+  bootstrap_command "$bootstrap_include" "$bootstrap_dry_run" "$bootstrap_verbose" "$bootstrap_replace"
+}
+
+doctor_command_with_args() {
+  doctor_verbose=0
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --verbose) doctor_verbose=1; shift ;;
+      --help|-h) dot_command_usage doctor; return 0 ;;
+      *) dot_bad_args "invalid argument: $1" doctor; return $? ;;
+    esac
+  done
+  doctor_command "$doctor_verbose"
+}
+
+deploy_command_with_args() {
+  files_command deploy "$@"
+}
+
+undeploy_command_with_args() {
+  files_command undeploy "$@"
+}
+
+add_command_with_args() {
+  files_command add "$@"
+}
+
+backups_command_with_args() {
+  files_command backups "$@"
 }
 
 case "${1:-help}" in
   help|--help|-h)
     if [ "$#" -gt 1 ]; then
-      dot_command_usage "$2"
+      shift
+      dot_command_usage "$*"
     else
       dot_usage
     fi
     ;;
   doctor)
     shift
-    [ "$#" = 0 ] || dot_bad_args "invalid argument: $1" doctor || exit $?
-    doctor_command
-    ;;
-  plan)
-    shift
-    plan_command "$@"
+    doctor_command_with_args "$@"
     ;;
   install)
     shift
@@ -169,6 +127,10 @@ case "${1:-help}" in
   undeploy)
     shift
     undeploy_command_with_args "$@"
+    ;;
+  add)
+    shift
+    add_command_with_args "$@"
     ;;
   backups)
     shift
