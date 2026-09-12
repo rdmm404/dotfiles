@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+config_dir="${ST_CONFIG_DIR:-}"
+if [ -z "$config_dir" ]; then
+  for candidate in "${XDG_STATE_HOME:-$HOME/.local/state}/syncthing" "${XDG_CONFIG_HOME:-$HOME/.config}/syncthing"; do
+    if [ -f "$candidate/config.xml" ]; then
+      config_dir="$candidate"
+      break
+    fi
+  done
+fi
+config_file="$config_dir/config.xml"
+
+address=$(python3 - "$config_file" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+
+root = ET.parse(sys.argv[1]).getroot()
+address = root.findtext("./gui/address", "")
+if not address:
+    raise SystemExit("Syncthing GUI address is not configured")
+print(address)
+PY
+)
+
+case "$address" in
+  http://*|https://*) url="$address" ;;
+  *) url="http://$address" ;;
+esac
+
+# Escape the pipe because the focus helper treats the pattern as a regex.
+exec omarchy-launch-or-focus-webapp 'argo \| Syncthing' "$url"

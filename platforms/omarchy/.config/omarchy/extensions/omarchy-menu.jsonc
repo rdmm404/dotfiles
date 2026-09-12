@@ -1,0 +1,22 @@
+{
+  // Preserve existing local menu extensions.
+  "style.background": {
+    "icon": "",
+    "label": "Background",
+    "aliases": ["background", "wallpaper"],
+    "action": "$HOME/.config/omarchy/plugins/io.github.gavidetdoliath.waypaper-video-background/background-selector.sh"
+  },
+  "style.lockscreen": {
+    "icon": "󰌾",
+    "label": "Lock Screen",
+    "aliases": ["lockscreen", "lock-screen"],
+    "description": "Preview and choose a lock screen design",
+    "action": "omarchy-shell lock explore"
+  },
+  "syncthing": {
+    "icon": "󰒋",
+    "label": "Syncthing",
+    "description": "Open Syncthing web interface",
+    "action": "omarchy-syncthing-webapp"
+  }
+}
