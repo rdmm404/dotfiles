@@ -1,7 +1,8 @@
 DOT_ZSH_FOUNDATION=zap
 
-if [ -r "$HOME/.local/share/zap/zap.zsh" ]; then
-  source "$HOME/.local/share/zap/zap.zsh"
+ZAP_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zap"
+if [ -r "$ZAP_DIR/zap.zsh" ]; then
+  source "$ZAP_DIR/zap.zsh"
   if command -v plug >/dev/null 2>&1; then
     plug 'zsh-users/zsh-autosuggestions'
     plug 'hlissner/zsh-autopair'

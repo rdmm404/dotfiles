@@ -25,10 +25,10 @@ class FilesTests(unittest.TestCase):
         self.root.mkdir()
         shutil.copy2(REPO / "dot", self.root)
         shutil.copytree(REPO / "lib", self.root / "lib")
-        for layer in ("global", "platforms/wsl", "platforms/macos", "platforms/omarchy"):
+        for layer in ("global", "platforms/macos", "platforms/omarchy"):
             (self.root / layer).mkdir(parents=True)
         self.env = dict(os.environ, HOME=str(self.home), DOT_ROOT=str(self.root),
-                        DOT_PLATFORM="wsl", STOW_COMMAND=STOW or "stow")
+                        DOT_PLATFORM="omarchy", STOW_COMMAND=STOW or "stow")
 
     def write(self, path, text="config\n"):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -115,13 +115,13 @@ class FilesTests(unittest.TestCase):
 
     def test_layer_collisions_refused(self):
         self.write(self.root / "global/.config/app")
-        self.write(self.root / "platforms/wsl/.config/app/child")
+        self.write(self.root / "platforms/omarchy/.config/app/child")
         self.cli("deploy", ok=False)
         self.assertFalse((self.home / ".config").exists())
 
     def test_adapter_links_and_repository_escape(self):
         canonical = self.write(self.root / "global/.canonical")
-        (self.root / "platforms/wsl/.adapter").symlink_to("../../global/.canonical")
+        (self.root / "platforms/omarchy/.adapter").symlink_to("../../global/.canonical")
         self.cli("deploy")
         self.assert_link(self.home / ".adapter", canonical)
         (self.home / ".canonical").unlink()
@@ -135,7 +135,7 @@ class FilesTests(unittest.TestCase):
         self.write(self.root / "global/skills-lock.json")
         self.write(self.root / "global/cache/file")
         source = self.write(self.root / "global/.agents/skills/demo/README.md")
-        self.write(self.root / "platforms/wsl/README.md")
+        self.write(self.root / "platforms/omarchy/README.md")
         self.cli("deploy")
         self.assert_link(self.home / ".agents/skills/demo/README.md", source)
         self.assertFalse((self.home / "skills-lock.json").exists())
@@ -145,8 +145,8 @@ class FilesTests(unittest.TestCase):
 
     def test_failed_layer_keeps_successful_work(self):
         self.write(self.root / "global/.one")
-        self.write(self.root / "platforms/wsl/.two")
-        fake = self.write(self.base / "stow", '#!/bin/sh\ncase "$*" in *" wsl") exit 1;; esac\nexec "$REAL_STOW" "$@"\n')
+        self.write(self.root / "platforms/omarchy/.two")
+        fake = self.write(self.base / "stow", '#!/bin/sh\ncase "$*" in *" omarchy") exit 1;; esac\nexec "$REAL_STOW" "$@"\n')
         fake.chmod(0o755)
         self.env.update(STOW_COMMAND=str(fake), REAL_STOW=STOW)
         self.cli("deploy", ok=False)
@@ -161,9 +161,9 @@ class FilesTests(unittest.TestCase):
         result = self.cli("add", target, ok=False)
         self.assertEqual(result.returncode, 2)
         self.cli("add", target, "--platform", "--dry-run")
-        self.assertFalse((self.root / "platforms/wsl/.config").exists())
+        self.assertFalse((self.root / "platforms/omarchy/.config").exists())
         self.cli("add", target, "--platform")
-        source = self.root / "platforms/wsl/.config/tool/settings file"
+        source = self.root / "platforms/omarchy/.config/tool/settings file"
         self.assert_link(target, source)
         self.assertEqual(source.read_text(), "personal")
         self.assertEqual(source.stat().st_mode & 0o777, 0o600)
@@ -201,7 +201,7 @@ class FilesTests(unittest.TestCase):
         self.assertEqual(source.read_text(), "tracked")
         self.assertEqual(target.read_text(), "personal")
         self.cli("add", target, "--platform", ok=False)
-        self.assertFalse((self.root / "platforms/wsl/.config").exists())
+        self.assertFalse((self.root / "platforms/omarchy/.config").exists())
 
     def test_add_rejects_outside_home_repo_and_foreign_symlink(self):
         outside = self.write(self.base / "outside")
@@ -280,7 +280,7 @@ class FilesTests(unittest.TestCase):
 
     def test_stow_option_file_cannot_be_deployed_between_layers(self):
         self.write(self.root / "global/.stowrc", "--adopt\n")
-        self.write(self.root / "platforms/wsl/.app", "repo")
+        self.write(self.root / "platforms/omarchy/.app", "repo")
         target = self.write(self.home / ".app", "home")
         self.cli("deploy", "--replace", ok=False)
         self.assertEqual(target.read_text(), "home")
@@ -351,7 +351,7 @@ class FilesTests(unittest.TestCase):
         self.cli("add", tree / "config", "--platform")
         self.cli("add", tree, "--global", ok=False)
         self.cli("add", tree, "--platform")
-        self.assertTrue((self.root / "platforms/wsl/.tool/alias").is_symlink())
+        self.assertTrue((self.root / "platforms/omarchy/.tool/alias").is_symlink())
         self.assertEqual((tree / "alias").read_text(), "config\n")
 
     def test_add_applies_directory_modes_after_copying_children(self):

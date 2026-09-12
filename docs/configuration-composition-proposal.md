@@ -17,4 +17,4 @@ The first candidate is VS Code `settings.json`, with the macOS theme as the init
 
 ## Interim decision
 
-Do not add composition logic yet. macOS currently owns a complete copy of the VS Code settings file so it can select its theme independently; the shared copy remains theme-neutral for Omarchy and WSL. This duplication is intentional and should be replaced by composition if the platform-specific settings grow.
+Do not add composition logic yet. macOS currently owns a complete copy of the VS Code settings file so it can select its theme independently; the shared copy remains theme-neutral for Omarchy. This duplication is intentional and should be replaced by composition if the platform-specific settings grow.

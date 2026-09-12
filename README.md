@@ -1,7 +1,7 @@
 # Dotfiles
 
 This repository uses `dot` to install applications and link shared and
-platform-specific configuration on macOS, WSL, and Omarchy.
+platform-specific configuration on macOS and Omarchy.
 
 ## Quick start
 

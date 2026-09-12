@@ -48,10 +48,6 @@ configuration_deploy_test() {
       [ -f "$configuration_tmp/home/Library/Application Support/MTMR/items.json" ] || { rm -rf "$configuration_tmp"; fail 'MTMR config missing'; return 1; }
       assert_linked "$configuration_tmp/home/.config/ghostty/config" || { rm -rf "$configuration_tmp"; return 1; }
       ;;
-    wsl)
-      assert_linked "$configuration_tmp/home/.config/Code/User/settings.json" || { rm -rf "$configuration_tmp"; return 1; }
-      [ ! -e "$configuration_tmp/home/Library" ] || { rm -rf "$configuration_tmp"; fail 'WSL received macOS config'; return 1; }
-      ;;
     omarchy)
       assert_linked "$configuration_tmp/home/.config/Code/User/settings.json" || { rm -rf "$configuration_tmp"; return 1; }
       assert_linked "$configuration_tmp/home/.config/ghostty/config" || { rm -rf "$configuration_tmp"; return 1; }
@@ -81,6 +77,5 @@ shared_configuration_test() {
 
 shared_configuration_test || exit 1
 configuration_deploy_test macos || exit 1
-configuration_deploy_test wsl || exit 1
 configuration_deploy_test omarchy || exit 1
 printf 'configuration tests passed\n'

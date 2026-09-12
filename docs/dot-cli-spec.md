@@ -5,7 +5,7 @@ command. It is a Bash entry point with Python-backed filesystem operations.
 
 ## General contract
 
-- Supported platforms are macOS, WSL, and Omarchy; the active platform is
+- Supported platforms are macOS and Omarchy; the active platform is
   detected automatically.
 - `global/` is deployed before `platforms/<platform>/`.
 - `--dry-run` previews an operation without writing.
@@ -142,7 +142,6 @@ Configuration and application selection live in:
 ```text
 global/
 platforms/macos/
-platforms/wsl/
 platforms/omarchy/
 manifests/core
 manifests/development

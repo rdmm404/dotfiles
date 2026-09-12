@@ -1,76 +1,40 @@
 #!/usr/bin/env bash
 
-# Doctor is intentionally a runtime check. Repository linting, shell syntax
-# checks, and checks for inactive platforms belong in development tooling, not
-# in the command a user runs to assess the current deployment.
-doctor_check_apps_in_manifest() {
-  doctor_apps_manifest="$1"
-  doctor_apps_required="${2:-1}"
-  manifest_read "$doctor_apps_manifest" || return 1
-  doctor_apps_entry=''
-  while IFS= read -r doctor_apps_entry || [ -n "$doctor_apps_entry" ]; do
-    [ -z "$doctor_apps_entry" ] && continue
-    if ! installer_status "$doctor_apps_entry"; then
-      dot_error "unknown application for $PLATFORM: $doctor_apps_entry"
-      [ "$doctor_apps_required" = 1 ] && DOCTOR_PROBLEMS=$((DOCTOR_PROBLEMS + 1))
-    elif [ "$INSTALLER_STATUS" = installed ]; then
-      [ "${DOCTOR_VERBOSE:-0}" = 1 ] && dot_ok "available: $doctor_apps_entry"
-    elif [ "$INSTALLER_STATUS" = unsupported ]; then
-      dot_skip "unsupported on $PLATFORM: $doctor_apps_entry"
-    elif [ "$doctor_apps_required" = 1 ]; then
-      dot_error "missing required application: $doctor_apps_entry"
-      DOCTOR_PROBLEMS=$((DOCTOR_PROBLEMS + 1))
-    else
-      dot_warn "missing optional application: $doctor_apps_entry"
-    fi
-  done <<EOF
-$MANIFEST_ENTRIES
-EOF
-}
-
-doctor_check_deployment() {
-  if [ "${DOCTOR_VERBOSE:-0}" = 1 ]; then
-    files_command check --verbose
-  else
-    files_command check
-  fi
-  if [ "$?" != 0 ]; then
-    dot_error 'runtime deployment check found blocking problems'
-    DOCTOR_PROBLEMS=$((DOCTOR_PROBLEMS + 1))
-  fi
-}
-
+# Runtime checks only. Missing optional apps are useful detail, not problems.
 doctor_command() {
-  DOCTOR_PROBLEMS=0
-  DOCTOR_VERBOSE="${1:-0}"
-  [ "$#" = 0 ] || [ "$#" = 1 ] || {
-    dot_error "invalid doctor argument: $2"
-    return 2
-  }
-
+  local verbose="${1:-0}" app missing=0 deployment=0
+  local args=(check)
   platform_detect || return 1
   platform_load_installer "$PLATFORM" || return 1
-  printf 'Platform: %s\n' "$(platform_label "$PLATFORM")"
-
-  # Validate the manifests before asking installers about their entries. This
-  # retains the manifest API and gives a useful error for a malformed catalog,
-  # while only the required manifests can make the runtime app check fail.
-  if ! manifest_validate_all; then
-    return 1
+  manifest_load 1 || return 1
+  if [ "$verbose" = 1 ]; then
+    printf 'Platform: %s\n' "$(platform_label "$PLATFORM")"
+    args[1]=--verbose
   fi
-
-  doctor_check_deployment
-  doctor_check_apps_in_manifest "$DOT_ROOT/manifests/core" 1 ||
-    DOCTOR_PROBLEMS=$((DOCTOR_PROBLEMS + 1))
-  doctor_check_apps_in_manifest "$DOT_ROOT/manifests/development" 1 ||
-    DOCTOR_PROBLEMS=$((DOCTOR_PROBLEMS + 1))
-  doctor_check_apps_in_manifest "$DOT_ROOT/manifests/optional" 0 ||
-    DOCTOR_PROBLEMS=$((DOCTOR_PROBLEMS + 1))
-
-  if [ "$DOCTOR_PROBLEMS" = 0 ]; then
-    dot_ok 'doctor found no blocking problems'
-    return 0
+  if ! files_command "${args[@]}"; then
+    deployment=1
+    dot_error 'deployment needs attention; run dot deploy --dry-run'
   fi
-  dot_error "doctor found $DOCTOR_PROBLEMS blocking problem(s)"
-  return 1
+  for app in "${APPS[@]}"; do
+    app_status "$app"
+    case "$APP_STATUS" in
+      installed) [ "$verbose" = 1 ] && dot_ok "available: $app" ;;
+      unsupported) [ "$verbose" = 1 ] && dot_skip "unsupported on $PLATFORM: $app" ;;
+      missing)
+        dot_error "missing required application: $app"
+        missing=$((missing + 1))
+        ;;
+    esac
+  done
+  for app in "${OPTIONAL_APPS[@]}"; do
+    app_status "$app"
+    case "$APP_STATUS" in
+      installed) dot_ok "available (optional): $app" ;;
+      unsupported) dot_skip "unsupported on $PLATFORM: $app" ;;
+      missing) dot_warn "missing optional application: $app" ;;
+    esac
+  done
+  [ "$missing" = 0 ] || dot_error "$missing required application(s) missing; run dot install"
+  [ "$missing" = 0 ] && [ "$deployment" = 0 ] || return 1
+  dot_ok 'doctor found no blocking problems'
 }

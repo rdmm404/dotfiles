@@ -22,7 +22,7 @@ for f in "$HOME"/.config/zsh/functions/*.zsh(N); do
   source "$f"
 done
 
-# Zap remains the SSH-agent/plugin foundation on macOS and WSL only.
+# Zap remains the SSH-agent/plugin foundation on macOS and Omarchy.
 if [ "$DOT_ZSH_FOUNDATION" = zap ] && command -v plug >/dev/null 2>&1; then
   plug "$HOME/.config/zsh/plugins/ssh-agent.zsh"
 fi
