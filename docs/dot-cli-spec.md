@@ -5,8 +5,10 @@ command. It is a Bash entry point with Python-backed filesystem operations.
 
 ## General contract
 
-- Supported platforms are macOS and Omarchy; the active platform is
-  detected automatically.
+- Supported platforms are macOS, Omarchy, and Ubuntu (including Xubuntu);
+  the active platform is detected automatically. Ubuntu detection uses
+  `ID=ubuntu` in `/etc/os-release`, not merely `ID_LIKE=debian`.
+  `DOT_PLATFORM` can explicitly select one of the three platforms.
 - `global/` is deployed before `platforms/<platform>/`.
 - `--dry-run` previews an operation without writing.
 - There are no routine confirmation prompts. `dot install` and `dot bootstrap`
@@ -143,6 +145,7 @@ Configuration and application selection live in:
 global/
 platforms/macos/
 platforms/omarchy/
+platforms/ubuntu/
 manifests/core
 manifests/development
 manifests/optional
@@ -150,6 +153,15 @@ manifests/optional
 
 Manifest files contain one logical application name per line; blank lines and
 `#` comments are ignored. Core and development are selected by default.
+`manifests/<platform>/<group>` replaces the corresponding shared selection
+when present; missing platform groups fall back to the shared manifest.
+All selections are validated against the shared `manifests/catalog` and cannot
+contain duplicates across selected groups. Doctor and install use the same
+selection rules.
+
+Ubuntu overrides core and development for an SSH-first setup: no Ghostty,
+VS Code, or server-side Nerd Font installation. See [Ubuntu setup](ubuntu-setup.md)
+for package mappings, shell behavior, and installation boundaries.
 
 ## Dependencies
 

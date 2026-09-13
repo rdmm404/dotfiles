@@ -66,6 +66,23 @@ class FilesTests(unittest.TestCase):
         self.assertEqual(target.lstat().st_ino, identity)
         self.assertFalse((self.home / ".local/state/dot").exists())
 
+    def test_ubuntu_deployment_preserves_desktop_and_backs_up_herdr(self):
+        self.env["DOT_PLATFORM"] = "ubuntu"
+        source = self.write(self.root / "platforms/ubuntu/.config/herdr/config.toml", "new config\n")
+        self.write(self.root / "platforms/omarchy/.config/hypr/config", "not Ubuntu\n")
+        target = self.write(self.home / ".config/herdr/config.toml", "onboarding = false\n")
+        desktop = self.write(self.home / ".config/xfce4/settings", "preserve\n")
+        self.cli("deploy", "--dry-run", ok=False)
+        self.assertEqual(target.read_text(), "onboarding = false\n")
+        self.cli("deploy", ok=False)
+        self.cli("deploy", "--replace")
+        self.assert_link(target, source)
+        self.assertEqual(desktop.read_text(), "preserve\n")
+        self.assertFalse((self.home / ".config/hypr").exists())
+        self.assertIn("Already up to date", self.cli("deploy").stdout)
+        self.cli("backups", "restore", "latest")
+        self.assertEqual(target.read_text(), "onboarding = false\n")
+
     def test_dry_run_is_read_only(self):
         self.write(self.root / "global/.config/app/file")
         output = self.cli("deploy", "--dry-run").stdout

@@ -2,6 +2,8 @@
 
 # The platform layer supplies the shell foundation before shared settings load.
 DOT_ZSH_FOUNDATION=none
+DOT_ZSH_SSH_AGENT=managed
+DOT_ZSH_SYNTAX_FILE=''
 if [ -r "$HOME/.config/zsh/platform.zsh" ]; then
   source "$HOME/.config/zsh/platform.zsh"
 fi
@@ -22,8 +24,8 @@ for f in "$HOME"/.config/zsh/functions/*.zsh(N); do
   source "$f"
 done
 
-# Zap remains the SSH-agent/plugin foundation on macOS and Omarchy.
-if [ "$DOT_ZSH_FOUNDATION" = zap ] && command -v plug >/dev/null 2>&1; then
+# SSH-first platforms preserve the inherited agent instead of starting one.
+if [ "$DOT_ZSH_FOUNDATION" = zap ] && [ "$DOT_ZSH_SSH_AGENT" = managed ] && command -v plug >/dev/null 2>&1; then
   plug "$HOME/.config/zsh/plugins/ssh-agent.zsh"
 fi
 
@@ -49,6 +51,9 @@ bindkey ';5C' forward-word
 
 WORDCHARS=${WORDCHARS//[\/_.-=]/}
 
-if [ "$DOT_ZSH_FOUNDATION" = zap ] && command -v plug >/dev/null 2>&1; then
+if [ -n "$DOT_ZSH_SYNTAX_FILE" ]; then
+  # Ubuntu installs this up front; do not fetch plugins during SSH login.
+  [ ! -r "$DOT_ZSH_SYNTAX_FILE" ] || source "$DOT_ZSH_SYNTAX_FILE"
+elif [ "$DOT_ZSH_FOUNDATION" = zap ] && command -v plug >/dev/null 2>&1; then
   plug 'zsh-users/zsh-syntax-highlighting'
 fi

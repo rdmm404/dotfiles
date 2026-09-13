@@ -1,0 +1,13 @@
+# SSH-first shell foundation. Fonts belong on the SSH client.
+stow
+zsh
+starship
+zoxide
+fzf
+fd
+rg
+bat
+eza
+zsh-autosuggestions
+zsh-autopair
+zsh-history-substring-search

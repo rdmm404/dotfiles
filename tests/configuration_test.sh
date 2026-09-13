@@ -38,6 +38,13 @@ configuration_deploy_test() {
   [ -f "$configuration_tmp/home/.config/vscode/settings.json" ] || { rm -rf "$configuration_tmp"; fail 'Linux VS Code settings missing'; return 1; }
 
   case "$configuration_platform" in
+    ubuntu)
+      assert_linked "$configuration_tmp/home/.zshenv" || { rm -rf "$configuration_tmp"; return 1; }
+      assert_linked "$configuration_tmp/home/.config/herdr/config.toml" || { rm -rf "$configuration_tmp"; return 1; }
+      for desktop_path in .config/hypr .config/uwsm .config/xfce4 .config/ghostty/config .config/Code; do
+        [ ! -e "$configuration_tmp/home/$desktop_path" ] || { rm -rf "$configuration_tmp"; fail "Ubuntu deployed $desktop_path"; return 1; }
+      done
+      ;;
     macos)
       assert_contains "$TEST_REPO/platforms/macos/.config/ghostty/config" 'config-file = ~/.config/ghostty/shared.conf' || { rm -rf "$configuration_tmp"; return 1; }
       [ -f "$configuration_tmp/home/.config/ghostty/shared.conf" ] || { rm -rf "$configuration_tmp"; fail 'macOS Ghostty shared config missing'; return 1; }
@@ -78,4 +85,5 @@ shared_configuration_test() {
 shared_configuration_test || exit 1
 configuration_deploy_test macos || exit 1
 configuration_deploy_test omarchy || exit 1
+configuration_deploy_test ubuntu || exit 1
 printf 'configuration tests passed\n'

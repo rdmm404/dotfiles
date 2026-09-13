@@ -122,7 +122,7 @@ class Files:
         self.home = Path(os.environ["HOME"]).resolve()
         self.root = Path(os.environ["DOT_ROOT"]).resolve()
         self.platform = os.environ["DOT_PLATFORM"]
-        if self.platform not in ("macos", "omarchy"):
+        if self.platform not in ("macos", "omarchy", "ubuntu"):
             raise Error(f"Unsupported platform: {self.platform}")
         self.layers = [self.root / "global", self.root / "platforms" / self.platform]
         self.backup_root = self.home / ".local/state/dot/backups"

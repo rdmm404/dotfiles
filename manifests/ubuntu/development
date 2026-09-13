@@ -1,0 +1,6 @@
+# No desktop applications; preserve the existing XFCE setup.
+git
+gh
+rtk
+git-open
+herdr

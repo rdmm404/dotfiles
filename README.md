@@ -1,7 +1,10 @@
 # Dotfiles
 
 This repository uses `dot` to install applications and link shared and
-platform-specific configuration on macOS and Omarchy.
+platform-specific configuration on macOS, Omarchy, and Ubuntu.
+
+The [Ubuntu SSH-first setup](docs/ubuntu-setup.md) keeps XFCE unchanged and
+selects Zsh, CLI tools, and Herdr rather than desktop applications.
 
 ## Quick start
 
