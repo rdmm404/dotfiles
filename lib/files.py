@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Dot's filesystem operations. No persistent deployment state or transactions.
+"""Dot's filesystem operations. Inspect first, touch only changed paths.
 
-Inspect once, touch only changed paths, let Stow link the active layers. Failed
-operations leave successful work in place; backups protect explicit replacement.
+Stow links selected source files; composed files link to checksummed local state.
+Failed operations leave successful work in place; backups protect replacement.
 """
 import argparse
 from dataclasses import dataclass
@@ -17,6 +17,10 @@ import stat
 import subprocess
 import sys
 import time
+
+# In particular, doctor and dry runs must not create bytecode in the repository.
+sys.dont_write_bytecode = True
+from composition import CompositionError, FORMATS, GeneratedStore, merge_target, render
 
 
 class Error(Exception):
@@ -105,6 +109,9 @@ class Ignore:
 class Entry:
     source: Path
     is_dir: bool
+    base: Path = None
+    overlay: Path = None
+    content: bytes = None
 
 
 @dataclass
@@ -126,6 +133,8 @@ class Files:
             raise Error(f"Unsupported platform: {self.platform}")
         self.layers = [self.root / "global", self.root / "platforms" / self.platform]
         self.backup_root = self.home / ".local/state/dot/backups"
+        self.generated = GeneratedStore(self.root, self.home, self.platform)
+        self.excluded = {layer: set() for layer in self.layers}
 
     def display(self, path):
         return "~" + str(path)[len(str(self.home)):] if inside(path, self.home) else str(path)
@@ -139,13 +148,17 @@ class Files:
             # eventually reaches it. Resolve ancestors to reject repo/escape/file
             # when escape points outside. A tracked adapter itself is still ours.
             return (destination == self.root
-                    or inside(destination.parent.resolve(), self.root))
+                    or inside(destination.parent.resolve(), self.root)
+                    or self.generated.registered(destination))
         except (OSError, RuntimeError):
             return False
 
-    def inventory(self):
-        entries = {}
+    def inventory(self, compose=True):
+        inventories = []
+        self.excluded = {layer: set() for layer in self.layers}
         for layer in self.layers:
+            entries = {}
+            inventories.append(entries)
             if not layer.exists():
                 continue
             if not directory(layer):
@@ -163,16 +176,80 @@ class Files:
                     target = self.home / relative
                     if inside(target, self.root) or (not entry.is_dir and inside(self.root, target)):
                         raise Error(f"Configuration would overwrite the repository: {target}")
-                    if relative in entries and not (entry.is_dir and entries[relative].is_dir):
-                        raise Error(f"Configuration layers overlap at ~/{relative}")
-                    entries.setdefault(relative, entry)
+                    if inside(target, self.generated.base) or (not entry.is_dir and inside(self.generated.base, target)):
+                        raise Error(f"Configuration would overwrite generated storage: {target}")
+                    entries[relative] = entry
                     if entry.is_dir:
                         walk(source)
                     elif not source.is_symlink() and not source.is_file():
                         raise Error(f"Not a regular file or symlink: {source}")
             walk(layer)
+
+        shared, platform = inventories
+        entries = dict(shared)
+        for relative, entry in shared.items():
+            if not entry.is_dir and merge_target(relative):
+                raise Error(f"Merge markers belong in platform layers, not {entry.source}")
+        overlays = []
+        for relative, entry in platform.items():
+            marker = None if entry.is_dir else merge_target(relative)
+            if marker:
+                self.excluded[self.layers[1]].add(relative)
+                overlays.append((relative, entry, marker))
+                continue
+            if relative in shared:
+                if shared[relative].is_dir != entry.is_dir:
+                    raise Error(f"File/directory configuration collision at ~/{relative}")
+                if not entry.is_dir:
+                    self.excluded[self.layers[0]].add(relative)
+            entries[relative] = entry
+
+        requests, composed = [], []
+        for relative, overlay, (target, format_name) in overlays:
+            if target in platform:
+                if platform[target].is_dir:
+                    raise Error(f"File/directory configuration collision at ~/{target}")
+                print(f"Warning: {overlay.source.relative_to(self.root)} is ignored because "
+                      f"{platform[target].source.relative_to(self.root)} takes precedence; "
+                      "only one of the two should be present.", file=sys.stderr)
+                continue
+            if target not in shared:
+                raise Error(f"Merge has no global base: {overlay.source.relative_to(self.root)}")
+            base = shared[target]
+            if base.is_dir or not base.source.is_file() or not overlay.source.is_file():
+                raise Error(f"Merge requires regular file inputs at ~/{target}")
+            if format_name not in FORMATS:
+                raise Error(f"Unsupported merge format: {format_name} ({overlay.source})")
+            self.excluded[self.layers[0]].add(target)
+            self.generated.validate_location()
+            entries[target] = Entry(self.generated.output(target), False, base.source, overlay.source)
+            composed.append(entries[target])
+            requests.append({"format": format_name, "base": str(base.source), "overlay": str(overlay.source)})
+
+        if compose:
+            # Validate all inputs and render in memory before backing up or linking anything.
+            for entry, content in zip(composed, render(self.root, self.home, requests)):
+                entry.content = content
         # Parents occur before children even when supplied by different layers.
         return dict(sorted(entries.items(), key=lambda item: (len(item[0].parts), str(item[0]))))
+
+    def generated_link(self, path):
+        if path.is_symlink():
+            destination = Path(os.path.abspath(path.parent / os.readlink(path)))
+            if self.generated.registered(destination):
+                return destination
+        return None
+
+    def edited_outputs(self, entries):
+        return {relative: entry.source for relative, entry in entries.items()
+                if entry.overlay and self.generated.output_conflict(relative)}
+
+    def identical_target(self, target, entry):
+        if entry.overlay:
+            return (not target.is_symlink() and target.is_file()
+                    and stat.S_IMODE(target.stat().st_mode) == 0o600
+                    and target.read_bytes() == entry.content)
+        return identical(target, entry.source)
 
     def changes(self, entries):
         changes, replaced_dirs, unchanged = [], set(), 0
@@ -183,12 +260,17 @@ class Files:
                 action = "mkdir" if entry.is_dir else "link"
             elif entry.is_dir and directory(target):
                 continue
+            elif self.generated_link(target) and self.generated.modified(self.generated_link(target)):
+                action = "replace"
             elif not entry.is_dir and self.owned(target) and target.resolve() == entry.source.resolve():
-                unchanged += 1
-                continue
+                if entry.overlay and (not entry.source.exists() or entry.source.read_bytes() != entry.content):
+                    action = "generate"
+                else:
+                    unchanged += 1
+                    continue
             elif self.owned(target):
                 action = "relink"
-            elif not entry.is_dir and identical(target, entry.source):
+            elif not entry.is_dir and self.identical_target(target, entry):
                 action = "identical"
             else:
                 action = "replace"
@@ -203,16 +285,22 @@ class Files:
             visible = changes
         for change in visible if verbose or len(visible) <= 10 else []:
             verb = {"replace": "Back up and replace", "relink": "Relink",
-                    "identical": "Link identical file", "link": "Link", "mkdir": "Create directory"}[change.action]
+                    "identical": "Link identical file", "link": "Link", "mkdir": "Create directory",
+                    "generate": "Regenerate"}[change.action]
             if dry_run:
                 verb = "Would " + verb[0].lower() + verb[1:]
             else:
                 verb = {"replace": "Backed up and replaced", "relink": "Relinked",
-                        "identical": "Linked identical file", "link": "Linked", "mkdir": "Created directory"}[change.action]
+                        "identical": "Linked identical file", "link": "Linked", "mkdir": "Created directory",
+                        "generate": "Regenerated"}[change.action]
             print(f"{verb} {self.display(change.target)}")
+            if verbose and change.entry.overlay:
+                print(f"  Merge {change.entry.base.relative_to(self.root)} + "
+                      f"{change.entry.overlay.relative_to(self.root)} -> {self.display(change.entry.source)}")
 
     def deploy(self, args):
         entries = self.inventory()
+        edited_outputs = self.edited_outputs(entries)
         changes, unchanged = self.changes(entries)
         if not changes:
             if args.verbose:
@@ -222,6 +310,11 @@ class Files:
             print("Already up to date.")
             return
         conflicts = [change.target for change in changes if change.action == "replace"]
+        edited_links = [path for path in conflicts if self.generated_link(path)]
+        if (edited_outputs or edited_links) and not args.replace:
+            paths = {self.home / relative for relative in edited_outputs} | set(edited_links)
+            raise Error("Generated configuration was edited: " + ", ".join(self.display(p) for p in sorted(paths))
+                        + "; use --replace to back up and replace it. Edit the source config for lasting changes.")
         if conflicts and not args.replace:
             for path in conflicts:
                 print(f"Conflict: {self.display(path)}", file=sys.stderr)
@@ -236,6 +329,8 @@ class Files:
                 raise Error(f"dot does not support Stow option files: {rc}; use .stow-local-ignore for ignore rules.")
         if args.dry_run:
             self.show_changes(changes, True, args.verbose)
+            for relative in edited_outputs:
+                print(f"Would back up edited generated output for ~/{relative}")
             print(f"Dry run: {len(changes)} change(s), {unchanged} unchanged.")
             return
         stow = shutil.which(os.environ.get("STOW_COMMAND", "stow"))
@@ -243,6 +338,17 @@ class Files:
             raise Error("GNU Stow is required for deployment; run dot install.")
         if conflicts:
             self.save_backup(conflicts)
+        # A retained generated file can have edits even without its HOME link.
+        # Snapshot it separately if the ordinary conflict backup didn't cover it.
+        retained = {self.home / relative: source for relative, source in edited_outputs.items()
+                    if self.home / relative not in conflicts
+                    or self.generated_link(self.home / relative) != source}
+        if retained:
+            self.save_backup(list(retained), sources=retained)
+        for relative, entry in entries.items():
+            if entry.overlay and (not entry.source.exists() or entry.source.read_bytes() != entry.content
+                                  or relative in edited_outputs):
+                self.generated.write(relative, entry.content)
         for change in changes:
             if change.action in ("replace", "relink", "identical"):
                 remove(change.target)
@@ -250,7 +356,9 @@ class Files:
         for layer in self.layers:
             if not layer.exists():
                 continue
-            result = subprocess.run([stow, "--no-folding", "-d", str(layer.parent),
+            exclusions = ["--ignore=\\A" + re.escape(path.as_posix()) + "\\z"
+                          for path in sorted(self.excluded[layer])]
+            result = subprocess.run([stow, "--no-folding", *exclusions, "-d", str(layer.parent),
                                      "-t", str(self.home), layer.name], cwd=self.root, capture_output=True, text=True)
             if result.returncode:
                 if result.stderr:
@@ -261,6 +369,13 @@ class Files:
             completed.append(str(layer.relative_to(self.root)))
             if args.verbose and result.stderr:
                 print(result.stderr.rstrip())
+        for relative, entry in entries.items():
+            if entry.overlay:
+                target = self.home / relative
+                regular_parents(target, self.home)
+                if not exists(target):
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.symlink_to(os.path.relpath(entry.source, target.parent))
         self.show_changes(changes, False, args.verbose)
         count = sum(not change.entry.is_dir for change in changes)
         print(f"{count} link(s) updated, {unchanged} unchanged ({self.platform}).")
@@ -355,7 +470,11 @@ class Files:
 
     def undeploy(self, args):
         removed = []
-        for relative in self.inventory():
+        # Unlinking doesn't require UV or parsing a possibly broken TOML input.
+        relatives = set(self.inventory(compose=False))
+        if self.generated.metadata(self.platform).exists():
+            relatives.update(Path(name) for name in self.generated.records())
+        for relative in sorted(relatives, key=lambda path: (len(path.parts), str(path))):
             path = self.home / relative
             if any(inside(path, parent) for parent in removed):
                 continue
@@ -372,11 +491,15 @@ class Files:
         print(f"{'Would remove' if args.dry_run else 'Removed'} {len(removed)} link(s)." if removed else "Nothing to undeploy.")
 
     def check(self, args):
-        changes, unchanged = self.changes(self.inventory())
+        entries = self.inventory()
+        edited_outputs = self.edited_outputs(entries)
+        changes, unchanged = self.changes(entries)
+        for relative in edited_outputs:
+            print(f"Conflict: edited generated output for ~/{relative}")
         for change in changes:
             if change.action != "mkdir" or args.verbose:
                 print(f"{'Conflict' if change.action == 'replace' else 'Not deployed'}: {self.display(change.target)}")
-        if changes:
+        if changes or edited_outputs:
             raise Error("Run dot deploy to reconcile configuration.")
         print(f"Configuration is deployed ({unchanged} links).")
 
@@ -399,7 +522,21 @@ class Files:
         return sorted((p for p in self.backup_root.glob("*") if directory(p)),
                       key=lambda p: (p.stat().st_mtime_ns, p.name))
 
-    def save_backup(self, paths):
+    def backup_copy(self, source, target):
+        # Generated links are snapshots, not aliases to output that we're about
+        # to regenerate. Preserve ordinary links (including foreign ones) as links.
+        if directory(source):
+            target.mkdir(parents=True, exist_ok=True)
+            for child in source.iterdir():
+                self.backup_copy(child, target / child.name)
+            shutil.copystat(source, target)
+        elif self.generated_link(source) and source.is_file():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+        else:
+            copy(source, target)
+
+    def save_backup(self, paths, sources=None):
         regular_parents(self.backup_root / "placeholder", self.home)
         if any(inside(self.backup_root, path) for path in paths):
             raise Error("Cannot back up a directory containing the backup storage itself.")
@@ -413,7 +550,7 @@ class Files:
         print(f"Backup: {self.display(backup)}")
         for path in paths:
             relative = path.relative_to(self.home)
-            copy(path, backup / "files" / relative)
+            self.backup_copy(sources[path] if sources else path, backup / "files" / relative)
             saved.append(str(relative))
             (backup / "manifest.json").write_text(json.dumps(saved, indent=2) + "\n")
         return backup
@@ -538,7 +675,7 @@ def main():
     try:
         files = Files()
         getattr(files, args.command)(args)
-    except (Error, OSError, RuntimeError, ValueError, re.error, EOFError) as error:
+    except (Error, CompositionError, OSError, RuntimeError, ValueError, re.error, EOFError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1
     except KeyboardInterrupt:

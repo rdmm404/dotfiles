@@ -13,12 +13,12 @@ REPO = Path(__file__).resolve().parents[1]
 STOW = shutil.which("stow")
 
 
-class FilesTests(unittest.TestCase):
+class DotFixture(unittest.TestCase):
     def setUp(self):
         self.assertIsNotNone(STOW, "Install GNU Stow to run filesystem tests")
         self.tmp = tempfile.TemporaryDirectory(prefix="dot-files-test-")
         self.addCleanup(self.tmp.cleanup)
-        self.base = Path(self.tmp.name)
+        self.base = Path(self.tmp.name).resolve()
         self.home = self.base / "home"
         self.root = self.home / "dotfiles"
         self.home.mkdir()
@@ -28,7 +28,8 @@ class FilesTests(unittest.TestCase):
         for layer in ("global", "platforms/macos", "platforms/omarchy"):
             (self.root / layer).mkdir(parents=True)
         self.env = dict(os.environ, HOME=str(self.home), DOT_ROOT=str(self.root),
-                        DOT_PLATFORM="omarchy", STOW_COMMAND=STOW or "stow")
+                        DOT_PLATFORM="omarchy", STOW_COMMAND=STOW or "stow",
+                        XDG_STATE_HOME=str(self.home / ".local/state"))
 
     def write(self, path, text="config\n"):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -54,6 +55,8 @@ class FilesTests(unittest.TestCase):
         self.assertTrue(path.is_symlink(), str(path))
         self.assertEqual(path.resolve(), source.resolve())
 
+
+class FilesTests(DotFixture):
     def test_deploy_no_prompt_and_true_noop(self):
         source = self.write(self.root / "global/.config/app/settings")
         target = self.home / ".config/app/settings"
@@ -130,10 +133,52 @@ class FilesTests(unittest.TestCase):
         self.assertEqual(source.read_text(), "config\n")
         self.assert_link(self.home / ".config/app/file", source)
 
+    def test_platform_files_replace_global_files_completely(self):
+        global_file = self.write(self.root / "global/.config/app/settings", "global only")
+        platform_file = self.write(self.root / "platforms/omarchy/.config/app/settings", "platform only")
+        target = self.home / ".config/app/settings"
+        self.cli("deploy", "--dry-run")
+        self.assertFalse(target.exists())
+        self.cli("deploy")
+        self.assert_link(target, platform_file)
+        self.assertEqual(target.read_text(), "platform only")
+        self.assertEqual(global_file.read_text(), "global only")
+        self.assertIn("Already up to date", self.cli("deploy").stdout)
+        platform_file.unlink()
+        self.cli("deploy")
+        self.assert_link(target, global_file)
+        self.assertFalse((self.home / ".local/state").exists())
+
+    def test_platform_collision_exclusions_are_exact_paths(self):
+        relative = ".config/a [b]+/settings.toml"
+        self.write(self.root / "global" / relative)
+        winner = self.write(self.root / "platforms/omarchy" / relative, "winner")
+        other = self.write(self.root / "global/.config/other/settings.toml")
+        self.cli("deploy")
+        self.assert_link(self.home / relative, winner)
+        self.assert_link(self.home / ".config/other/settings.toml", other)
+
+    def test_platform_switch_and_symlink_override(self):
+        canonical = self.write(self.root / "global/.canonical")
+        self.write(self.root / "global/.app", "base")
+        platform = self.root / "platforms/omarchy/.app"
+        platform.symlink_to("../../global/.canonical")
+        self.cli("deploy")
+        self.assert_link(self.home / ".app", canonical)
+        self.env["DOT_PLATFORM"] = "macos"
+        self.cli("deploy")
+        self.assert_link(self.home / ".app", self.root / "global/.app")
+
     def test_layer_collisions_refused(self):
         self.write(self.root / "global/.config/app")
         self.write(self.root / "platforms/omarchy/.config/app/child")
         self.cli("deploy", ok=False)
+        self.assertFalse((self.home / ".config").exists())
+
+    def test_platform_file_cannot_replace_global_directory(self):
+        self.write(self.root / "global/.config/app/child")
+        self.write(self.root / "platforms/omarchy/.config/app")
+        self.assertIn("File/directory", self.cli("deploy", ok=False).stderr)
         self.assertFalse((self.home / ".config").exists())
 
     def test_adapter_links_and_repository_escape(self):

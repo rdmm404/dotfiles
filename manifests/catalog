@@ -1,5 +1,6 @@
 # Canonical logical application IDs. Selection manifests contain subsets of this list.
 stow
+uv
 zsh
 starship
 zoxide

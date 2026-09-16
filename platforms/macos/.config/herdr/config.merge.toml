@@ -1,0 +1,8 @@
+[keys]
+# Option+arrows are unreliable in this macOS terminal setup.
+previous_tab = ["prefix+p", "alt+shift+left"]
+next_tab = ["prefix+n", "alt+shift+right"]
+
+# Keep tab reordering distinct from switching tabs and pane controls.
+move_tab_previous = "prefix+shift+left"
+move_tab_next = "prefix+shift+right"

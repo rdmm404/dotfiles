@@ -18,13 +18,15 @@ selection groups. macOS and Omarchy retain their existing selections.
   are autosuggestions, autopair, and history-substring-search.
 - git-open: cloned from `paulirish/git-open` into the Zap plugins directory;
   its executable directory is added to the interactive Zsh PATH.
+- UV: pinned upstream 0.12.13 binary archive, used for TOML composition helpers.
 - RTK: pinned upstream v0.49.0 binary archive.
 - Herdr: pinned upstream v0.9.0 binary. The existing executable on this machine
   is reused, not overwritten or upgraded.
 
-RTK/Herdr downloads support x86_64 and aarch64, verify pinned SHA-256 digests,
+UV/RTK/Herdr downloads support x86_64 and aarch64, verify pinned SHA-256 digests,
 and install into `~/.local/bin`. The source repositories are
-[rtk-ai/rtk](https://github.com/rtk-ai/rtk) and
+[astral-sh/uv](https://github.com/astral-sh/uv),
+[rtk-ai/rtk](https://github.com/rtk-ai/rtk), and
 [herdrdev/herdr](https://github.com/herdrdev/herdr). Versions, assets, and digests
 are explicit in `installers/ubuntu.sh`; update them together after verification.
 No downloaded setup scripts run, and RTK agent/shell hooks are not installed.
@@ -73,11 +75,14 @@ those applications (and the ffmpeg helper's dependency) are not selected.
 
 ## Herdr
 
-`platforms/ubuntu/.config/herdr/config.toml` carries the personal Omarchy/tmux
-bindings, terminal palette, pane preferences, and hostname-aware title.
-It leaves system toast delivery and experimental Kitty graphics at defaults
-instead of importing the desktop-specific overrides. Prefix bindings provide
-alternatives for shortcuts that an SSH client cannot encode distinctly.
+`global/.config/herdr/config.toml` carries the shared personal tmux-style
+bindings, terminal palette, pane preferences, and hostname-aware title. Ubuntu
+links it directly, with no platform overlay. Omarchy adds desktop settings through
+`platforms/omarchy/.config/herdr/config.merge.toml`.
+
+The base leaves toast delivery and Kitty graphics at Herdr's defaults (Kitty
+graphics is enabled by default in v0.9.0). Prefix bindings provide alternatives
+for shortcuts that an SSH client cannot encode distinctly.
 
 At inspection time the machine's config contained only `onboarding = false`.
 The fuller repo config will therefore be a deployment conflict, **not silently
@@ -91,7 +96,7 @@ These steps are manual; implementing this profile does not execute them:
 1. Keep the current SSH/Bash connection open.
 2. Review `./dot install --dry-run --verbose`.
 3. Refresh APT indexes with `sudo apt-get update`, then run `./dot install`.
-4. Run `bash tests/run`. Real filesystem tests require Stow; the Ubuntu shell
+4. Run `bash tests/run`. Real filesystem tests require Stow and UV; the Ubuntu shell
    smoke test requires Zsh and uses isolated HOME/plugin/command fixtures.
 5. Review `./dot deploy --dry-run --verbose`, especially the Herdr conflict.
 6. Deploy after reviewing conflicts. Use `--replace` only after approving the

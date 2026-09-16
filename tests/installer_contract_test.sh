@@ -44,4 +44,15 @@ EOF
   cleanup_fixture
 }
 
-omarchy_command_test && macos_cask_mapping_test && unsupported_platform_app_test && omarchy_failure_test
+uv_package_mapping_test() {
+  make_fixture || return 1
+  printf '%s\n' uv > "$TEST_ROOT/manifests/core"
+  TEST_PATH="$TEST_BIN" DOT_PLATFORM=omarchy run_dot install || { cleanup_fixture; return 1; }
+  assert_contains "$TEST_TMP/commands" 'omarchy pkg add uv' || { cleanup_fixture; return 1; }
+  rm -f "$TEST_BIN/uv"
+  TEST_PATH="$TEST_BIN" DOT_PLATFORM=macos run_dot install || { cleanup_fixture; return 1; }
+  assert_contains "$TEST_TMP/commands" 'brew install uv' || { cleanup_fixture; return 1; }
+  cleanup_fixture
+}
+
+omarchy_command_test && macos_cask_mapping_test && unsupported_platform_app_test && omarchy_failure_test && uv_package_mapping_test

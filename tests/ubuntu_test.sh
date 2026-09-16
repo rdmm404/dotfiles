@@ -40,7 +40,7 @@ ubuntu_selection_test() {
   . "$DOT_ROOT/lib/manifest.sh"
   PLATFORM=ubuntu manifest_load 0
   printf '%s\n' "${APPS[@]}" > "$TEST_TMP/apps"
-  for app in stow zsh fd bat rtk git-open herdr; do assert_contains "$TEST_TMP/apps" "$app"; done
+  for app in stow uv zsh fd bat rtk git-open herdr; do assert_contains "$TEST_TMP/apps" "$app"; done
   for app in ghostty vscode nerd-font; do assert_not_contains "$TEST_TMP/apps" "$app"; done
   printf 'herdr\n' > "$DOT_ROOT/manifests/optional"
   if PLATFORM=ubuntu manifest_load 1; then fail 'cross-manifest duplicate accepted'; fi
@@ -159,6 +159,20 @@ ubuntu_binary_test() {
   ubuntu_install_binary rtk
   [ -x "$HOME/.local/bin/rtk" ]
   assert_contains "$TEST_TMP/downloads" 'rtk-ai/rtk/releases/download/v0.49.0/rtk-x86_64-unknown-linux-musl.tar.gz'
+  tar() {
+    [ "$1" = -xOzf ] && [ "$3" = "uv-$(uname -m)-unknown-linux-gnu/uv" ] || return 1
+    printf '#!/bin/sh\nexit 0\n'
+  }
+  installer_install uv
+  installer_available uv
+  [ -x "$HOME/.local/bin/uv" ]
+  assert_contains "$TEST_TMP/downloads" 'astral-sh/uv/releases/download/0.12.13/uv-x86_64-unknown-linux-gnu.tar.gz'
+  assert_contains "$TEST_TMP/digests" '745765a3b6e360ad76743599ae5c42e9278c7edf8bbff9fc76d05bf2623a04dd'
+  uname() { printf 'aarch64\n'; }
+  ubuntu_install_binary uv
+  assert_contains "$TEST_TMP/downloads" 'uv-aarch64-unknown-linux-gnu.tar.gz'
+  assert_contains "$TEST_TMP/digests" '2eaa5d94f5db7b3a1a092156b9420459e42ab0217d917fe74a876309cef9b5e9'
+  uname() { printf 'x86_64\n'; }
   printf 'preserve me\n' > "$HOME/.local/bin/herdr"
   sha256sum() { return 1; }
   if ubuntu_install_binary herdr; then fail 'checksum mismatch accepted'; fi

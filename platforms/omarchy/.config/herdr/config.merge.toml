@@ -1,0 +1,6 @@
+# Desktop-specific additions to global/.config/herdr/config.toml.
+[ui.toast]
+delivery = "system"
+
+[experimental]
+kitty_graphics = true

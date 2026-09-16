@@ -1,5 +1,6 @@
 # SSH-first shell foundation. Fonts belong on the SSH client.
 stow
+uv
 zsh
 starship
 zoxide

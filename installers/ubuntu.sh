@@ -38,7 +38,7 @@ installer_available() {
       command -v eza >/dev/null 2>&1 && [ -r "$(zap_path)/plugins/exa/eza.plugin.zsh" ]
       ;;
     git-open) [ -x "$(zap_path)/plugins/git-open/git-open" ] ;;
-    rtk|herdr)
+    rtk|herdr|uv)
       command -v "$1" >/dev/null 2>&1 || [ -x "$HOME/.local/bin/$1" ]
       ;;
     # Pi's private rg must not hide a missing system command for SSH sessions.
@@ -74,6 +74,10 @@ ubuntu_install_binary() (
       digest=7278231dfd7e6a730a4ab7f847b195bcf02289c2d57622b0dab75a6411100c8f ;;
     rtk:aarch64)
       digest=c8ea4b6560841e73157c134fd4a3293914c6ede42e786ee985cf491fde691ba7 ;;
+    uv:x86_64)
+      digest=745765a3b6e360ad76743599ae5c42e9278c7edf8bbff9fc76d05bf2623a04dd ;;
+    uv:aarch64)
+      digest=2eaa5d94f5db7b3a1a092156b9420459e42ab0217d917fe74a876309cef9b5e9 ;;
     *) dot_error "no pinned Ubuntu binary for $app on $arch"; return 1 ;;
   esac
   case "$app" in
@@ -85,6 +89,10 @@ ubuntu_install_binary() (
         x86_64) asset=rtk-x86_64-unknown-linux-musl.tar.gz ;;
         aarch64) asset=rtk-aarch64-unknown-linux-gnu.tar.gz ;;
       esac
+      ;;
+    uv)
+      repository=astral-sh/uv; version=0.12.13
+      asset="uv-$arch-unknown-linux-gnu.tar.gz"
       ;;
   esac
   command -v curl >/dev/null 2>&1 || ubuntu_apt curl ca-certificates || return 1
@@ -99,6 +107,8 @@ ubuntu_install_binary() (
   if [ "$app" = rtk ]; then
     # Extract only the executable to stdout, never archive-controlled paths.
     tar -xOzf "$tmp/asset" rtk > "$tmp/$app" || return 1
+  elif [ "$app" = uv ]; then
+    tar -xOzf "$tmp/asset" "uv-$arch-unknown-linux-gnu/uv" > "$tmp/$app" || return 1
   else
     mv "$tmp/asset" "$tmp/$app" || return 1
   fi
@@ -128,7 +138,7 @@ installer_install() {
       mkdir -p "$(zap_path)/plugins" || return 1
       git clone --quiet --depth 1 https://github.com/paulirish/git-open.git "$(zap_path)/plugins/git-open"
       ;;
-    rtk|herdr) ubuntu_install_binary "$1" ;;
+    rtk|herdr|uv) ubuntu_install_binary "$1" ;;
     stow|starship|zoxide|fzf|fd|rg|bat|git|gh)
       ubuntu_apt "$(ubuntu_package "$1")"
       ;;

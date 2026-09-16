@@ -19,4 +19,11 @@ else
   status=1
   printf 'FAIL files_test.py\n' >&2
 fi
+printf '==> composition_test.py\n'
+if uv run --quiet --no-project --script "$TEST_DIR/composition_test.py"; then
+  printf 'PASS composition_test.py\n'
+else
+  status=1
+  printf 'FAIL composition_test.py\n' >&2
+fi
 exit "$status"
