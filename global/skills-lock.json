@@ -11,13 +11,13 @@
       "source": "mattpocock/skills",
       "sourceType": "github",
       "skillPath": "skills/engineering/ask-matt/SKILL.md",
-      "computedHash": "16554b785353aabf3880228755d317a3193a8359772f25ecb5f2a1f762d6e12d"
+      "computedHash": "d1c5b4151720e96135154bd593ac4986a1030a2bc81e2aaf129f8b11224af9a9"
     },
     "code-review": {
       "source": "mattpocock/skills",
       "sourceType": "github",
       "skillPath": "skills/engineering/code-review/SKILL.md",
-      "computedHash": "caa9a086baaf9e0f7cd71f64edfa83da6821c05e826b083221f3d02e3d6a1905"
+      "computedHash": "57cfd4ceb011f05e58a1a4f4cad3b2e03419d371f8990f4bcb32ff0d435a039f"
     },
     "codebase-design": {
       "source": "mattpocock/skills",
@@ -53,7 +53,7 @@
       "source": "mattpocock/skills",
       "sourceType": "github",
       "skillPath": "skills/productivity/grilling/SKILL.md",
-      "computedHash": "4dd886b0196bf43729d954ae326016f2bd9f5f79d892500b407c33a753362f14"
+      "computedHash": "ef1641a2047b71b60f1942cd35efb47d3afc9d584dff5a0b01f8c7db923aaa08"
     },
     "handoff": {
       "source": "mattpocock/skills",
@@ -65,19 +65,13 @@
       "source": "mattpocock/skills",
       "sourceType": "github",
       "skillPath": "skills/engineering/implement/SKILL.md",
-      "computedHash": "069487948f4611087b0f6350e381d47b9acb685d4aba9a85f55f8067c3ff8255"
+      "computedHash": "b6371a0a6723bad551f3adc721e3729a6a97acfc3670dc2bdea198bbe78408c0"
     },
     "improve-codebase-architecture": {
       "source": "mattpocock/skills",
       "sourceType": "github",
       "skillPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
       "computedHash": "ac2c94885f34ff8492dc12aa4543182f661f32ea1722b8d6b6c2c7045af33ae3"
-    },
-    "pr-review-canvas": {
-      "source": "cursor/plugins",
-      "sourceType": "github",
-      "skillPath": "cursor-team-kit/skills/pr-review-canvas/SKILL.md",
-      "computedHash": "b9ad154880ed8e865185f28fa646384475ae324af0baffc7f5787904f4b30bda"
     },
     "prototype": {
       "source": "mattpocock/skills",
@@ -101,7 +95,7 @@
       "source": "mattpocock/skills",
       "sourceType": "github",
       "skillPath": "skills/engineering/setup-matt-pocock-skills/SKILL.md",
-      "computedHash": "847c8337e21ed18bd40357636354c5e059e1dd589fab6ca5449bd9850fa4c538"
+      "computedHash": "1d35d0afa3ded88c9324d38db08b2cff91cd03e0e11d64786bee41385cd7b9fb"
     },
     "show-me": {
       "source": "humanlayer/skills",
@@ -113,7 +107,7 @@
       "source": "mattpocock/skills",
       "sourceType": "github",
       "skillPath": "skills/productivity/teach/SKILL.md",
-      "computedHash": "b8a69574c7a019bed84e84313dc8bf02e1d1bf925ba43057d433217c63863206"
+      "computedHash": "81c196426808c270a9d4688be291405c038bba11f020b9fe10098ad0f1d8c132"
     },
     "thermo-nuclear-code-quality-review": {
       "source": "cursor/plugins",
