@@ -1,0 +1,8 @@
+# Template only. Copying this does NOT authorize Google Drive.
+# Use rclone config --config ~/.config/resticprofile/rclone.conf
+# to create the authenticated, gitignored file interactively.
+[nautilus-drive]
+type = drive
+scope = drive.file
+# Set your personal OAuth client through interactive rclone configuration.
+# Never put client secrets or OAuth tokens in this example or tracked files.

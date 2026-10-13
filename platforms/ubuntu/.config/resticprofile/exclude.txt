@@ -1,0 +1,83 @@
+# Nautilus/core-role exclusions; these do not delete any files.
+# Keep hidden files, .git, secrets and Git-ignored files unless listed here.
+
+# Rebuildable caches/dependencies, not all of .local or .config.
+/home/rdmm404/.cache
+/home/rdmm404/.npm/_cacache
+/home/rdmm404/.local/share/pnpm/store
+/home/rdmm404/go/pkg/mod
+**/node_modules
+**/__pycache__
+
+# Old backup exports, locks and plaintext restore rehearsals.
+# Required new exports live under /var/lib/resticprofile, explicitly included.
+/home/rdmm404/.local/state/backup
+
+# Retired/excluded apps, not finance.
+# POST-MIGRATION: remove these app exclusions once reviewed cleanup removes
+# those directories/workloads; do not keep obsolete entries as configuration noise.
+/home/rdmm404/apps/data-viento
+/home/rdmm404/apps/espejo-emocional
+/home/rdmm404/apps/littlelink
+/home/rdmm404/apps/psicopro
+/home/rdmm404/apps/stream-elements
+/home/rdmm404/services/databases/msar
+
+# Retained agent state belongs to Bebop; outside this Nautilus-only scope.
+/home/rdmm404/.nanobot
+/home/rdmm404/.codex
+/home/rdmm404/ai
+/home/rdmm404/services/agents
+
+# Live database files replaced by consistent prepared backups.
+/home/rdmm404/services/home-automation/data/ha/config/home-assistant_v2.db
+/home/rdmm404/services/home-automation/data/ha/config/home-assistant_v2.db-wal
+/home/rdmm404/services/home-automation/data/ha/config/home-assistant_v2.db-shm
+/home/rdmm404/services/home-automation/data/ha/config/home-assistant_v2.db-journal
+/home/rdmm404/services/monitoring/data/grafana/grafana.db
+/home/rdmm404/services/monitoring/data/grafana/grafana.db-wal
+/home/rdmm404/services/monitoring/data/grafana/grafana.db-shm
+/home/rdmm404/services/monitoring/data/grafana/grafana.db-journal
+/home/rdmm404/services/gatus/data/gatus.db
+/home/rdmm404/services/gatus/data/gatus.db-wal
+/home/rdmm404/services/gatus/data/gatus.db-shm
+/home/rdmm404/services/gatus/data/gatus.db-journal
+/home/rdmm404/services/upsnap/data/data.db
+/home/rdmm404/services/upsnap/data/data.db-wal
+/home/rdmm404/services/upsnap/data/data.db-shm
+/home/rdmm404/services/upsnap/data/data.db-journal
+/home/rdmm404/services/upsnap/data/auxiliary.db
+/home/rdmm404/services/upsnap/data/auxiliary.db-wal
+/home/rdmm404/services/upsnap/data/auxiliary.db-shm
+/home/rdmm404/services/upsnap/data/auxiliary.db-journal
+# UpSnap's non-database files remain ordinary files in the home backup.
+# Keep MariaDB custom.cnf; exclude only its live database storage and logs.
+/home/rdmm404/services/calibre/data/grimmory-mariadb/databases
+/home/rdmm404/services/calibre/data/grimmory-mariadb/log
+/home/rdmm404/services/streaming/redis
+# These are replaced by supported application-state exports; verify before
+# activating exclusions. Do not claim coverage until the helpers are tested.
+/home/rdmm404/services/home-automation/data/zigbee2mqtt
+/home/rdmm404/services/home-automation/data/mqtt/data
+
+# AdGuard statistics and leases.json are INCLUDED; retain stats.db.
+# Statistics are bbolt, not SQLite; live ordinary-file capture is best-effort.
+# Verify restored stats before relying on them; do not stop DNS/DHCP routinely.
+# Only query history and login sessions remain excluded.
+/home/rdmm404/services/adguard/data/work/data/querylog.json*
+/home/rdmm404/services/adguard/data/work/data/sessions.db
+
+# Grafana database is PRESERVED through SQLite preparation above; other Grafana
+# files/provisioning/dashboards remain included. Prometheus history is PRESERVED
+# through a native TSDB snapshot, not a raw copy of its live database directory.
+/home/rdmm404/services/monitoring/data/prometheus
+
+# Expendable logs and build caches.
+/home/rdmm404/services/home-automation/data/mqtt/log
+/home/rdmm404/services/home-automation/data/ha/config/.cache
+/home/rdmm404/services/home-automation/data/ha/config/home-assistant.log*
+/home/rdmm404/services/home-automation/data/esphome/.esphome/build
+
+# HA completed backup archives, AdGuard config/leases/filters, Syncthing folders,
+# books, finance configuration and private ESPHome state remain INCLUDED.
+# PostgreSQL volume is outside source paths; native dumps provide its backup.

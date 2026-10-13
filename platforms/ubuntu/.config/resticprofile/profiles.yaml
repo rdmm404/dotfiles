@@ -1,0 +1,47 @@
+version: "1"
+
+# Keep the already restore-tested PostgreSQL-only profile as a fallback.
+includes:
+  - /home/rdmm404/.config/resticprofile/postgres.yaml
+
+global:
+  initialize: false
+
+default:
+  repository: "rclone:nautilus-drive:backups/nautilus"
+  password-file: /home/rdmm404/.config/resticprofile/restic-password
+  env:
+    RCLONE_CONFIG: /home/rdmm404/.config/resticprofile/rclone.conf
+    UV_CACHE_DIR: /var/cache/uv/nautilus-backup
+
+nautilus:
+  inherit: default
+  # Whole prepare/upload/cleanup job lock. Broad coverage requires privileged
+  # reading of root-owned home state and /etc; no implicit /root paths.
+  lock: /var/lib/resticprofile/nautilus/job.lock
+  backup:
+    source:
+      - /home/rdmm404
+      - /etc
+      - /var/lib/resticprofile/nautilus/exports
+    exclude-file:
+      - /home/rdmm404/.config/resticprofile/exclude.txt
+    run-before:
+      - /home/rdmm404/.local/bin/uv run --no-python-downloads --python /usr/bin/python3 --script /home/rdmm404/.config/resticprofile/scripts/prepare_backup.py
+    run-after:
+      - /home/rdmm404/.local/bin/uv run --no-python-downloads --python /usr/bin/python3 --script /home/rdmm404/.config/resticprofile/scripts/prepare_backup.py --cleanup
+    no-error-on-warning: false
+    tag:
+      - core
+      - home-and-host-config
+
+# One broad profile, not a separate file profile per service.
+groups:
+  homelab-core:
+    - nautilus
+
+# No timers, alerts, retention/pruning, automatic init or OS images.
+# /etc is recovery reference; never blindly overwrite another host's identities.
+# HA completed archives and AdGuard configuration/leases/statistics are ordinary
+# included files. Stats use bbolt, not SQLite; raw live stats capture is best-
+# effort until restore/snapshot consistency is separately verified.

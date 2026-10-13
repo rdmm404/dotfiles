@@ -1,0 +1,16 @@
+postgres:
+  inherit: default
+  # Lock covers both export hook and upload, not just database export.
+  lock: /home/rdmm404/.local/state/backup/postgres-profile.lock
+  backup:
+    run-before:
+      - /home/rdmm404/.config/resticprofile/scripts/backup-postgres.sh
+    source:
+      - /home/rdmm404/.local/state/backup/exports/postgres
+    tag:
+      - postgres
+      - core
+    no-error-on-warning: false
+    # Remove private plaintext exports only after a successful backup command.
+    run-after:
+      - /home/rdmm404/.config/resticprofile/scripts/cleanup-postgres-export.sh

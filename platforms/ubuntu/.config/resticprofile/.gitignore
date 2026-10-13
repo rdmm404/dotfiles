@@ -1,0 +1,4 @@
+/restic-password
+/rclone.conf
+__pycache__/
+*.pyc
