@@ -84,6 +84,36 @@ HOME="$TMP/home" ZDOTDIR="$TMP/home" XDG_DATA_HOME="$TMP/home/.local/share" \
     zstyle -a ":completion:*" menu menu_style
     [[ "$menu_style" == "yes select" ]] || exit 1
     [[ " $ZAP_INSTALLED_PLUGINS " == *" supercharge "* && " $ZAP_INSTALLED_PLUGINS " == *" exa "* ]] || exit 1
+
+    # ACL helper is loaded, but tests never run sudo or change real ACLs.
+    (( $+functions[acl_fix] )) || exit 1
+    typeset -a acl_calls=()
+    acl_test_fail=0
+    sudo() {
+      acl_calls+=("${(j:|:)@}")
+      [[ "$acl_test_fail" == 0 ]]
+    }
+    if acl_fix > /dev/null 2>&1; then exit 1; fi
+    if acl_fix "$HOME/missing" > /dev/null 2>&1; then exit 1; fi
+    (( ${#acl_calls} == 0 )) || exit 1
+    mkdir -p "$HOME/acl test" "$HOME/second"
+    acl_user=$(id -un)
+    acl_fix "$HOME/acl test" "$HOME/second" > "$HOME/acl-result" || exit 1
+    (( ${#acl_calls} == 4 )) || exit 1
+    [[ "$acl_calls[1]" == "setfacl|-R|-m|u:${acl_user}:rwX,m::rwX|--|$HOME/acl test" ]] || exit 1
+    [[ "$acl_calls[2]" == "setfacl|-R|-d|-m|u:${acl_user}:rwX,m::rwX|--|$HOME/acl test" ]] || exit 1
+    [[ "$acl_calls[3]" == "setfacl|-R|-m|u:${acl_user}:rwX,m::rwX|--|$HOME/second" ]] || exit 1
+    [[ "$acl_calls[4]" == "setfacl|-R|-d|-m|u:${acl_user}:rwX,m::rwX|--|$HOME/second" ]] || exit 1
+    # Ask the real Linux parser to validate both forms without changing ACLs.
+    if command -v setfacl >/dev/null 2>&1; then
+      command setfacl --test -m "u:${acl_user}:rwX,m::rwX" -- "$HOME/acl test" > /dev/null || exit 1
+      command setfacl --test -d -m "u:${acl_user}:rwX,m::rwX" -- "$HOME/acl test" > /dev/null || exit 1
+    fi
+    acl_calls=()
+    acl_test_fail=1
+    if acl_fix "$HOME/acl test" > "$HOME/acl-result"; then exit 1; fi
+    (( ${#acl_calls} == 1 )) || exit 1
+    [[ "$(< "$HOME/acl-result")" != *"Done:"* ]] || exit 1
   ' > "$TMP/output" 2> "$TMP/error"
 [ ! -s "$TMP/error" ] || { cat "$TMP/error" >&2; exit 1; }
 [ ! -e "$TMP/home/unexpected" ]
