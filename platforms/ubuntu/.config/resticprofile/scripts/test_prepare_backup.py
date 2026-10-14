@@ -174,7 +174,7 @@ class PreparationTests(unittest.TestCase):
             home = root / "home"
             exports = root / "exports"
             cases = {
-                "services/adguard/data/work/data/stats.db": True,
+                "services/adguard/data/work/data/stats.db": False,
                 "services/adguard/data/work/data/leases.json": True,
                 "services/adguard/data/work/data/querylog.json": False,
                 "services/home-automation/data/ha/config/backups/completed.tar": True,

@@ -60,10 +60,10 @@
 /home/rdmm404/services/home-automation/data/zigbee2mqtt
 /home/rdmm404/services/home-automation/data/mqtt/data
 
-# AdGuard statistics and leases.json are INCLUDED; retain stats.db.
-# Statistics are bbolt, not SQLite; live ordinary-file capture is best-effort.
-# Verify restored stats before relying on them; do not stop DNS/DHCP routinely.
-# Only query history and login sessions remain excluded.
+# AdGuard config, leases and filters remain INCLUDED; accept recent dynamic lease loss.
+# Statistics are excluded by user choice to avoid routine DNS/DHCP interruption.
+# Query history and login sessions are also excluded.
+/home/rdmm404/services/adguard/data/work/data/stats.db
 /home/rdmm404/services/adguard/data/work/data/querylog.json*
 /home/rdmm404/services/adguard/data/work/data/sessions.db
 

@@ -3,6 +3,8 @@ version: "1"
 # Keep the already restore-tested PostgreSQL-only profile as a fallback.
 includes:
   - /home/rdmm404/.config/resticprofile/postgres.yaml
+  # Private native success webhook (bearer token); never commit this file.
+  - /home/rdmm404/.config/resticprofile/gatus.yaml
 
 global:
   initialize: false
@@ -19,7 +21,20 @@ nautilus:
   # Whole prepare/upload/cleanup job lock. Broad coverage requires privileged
   # reading of root-owned home state and /etc; no implicit /root paths.
   lock: /var/lib/resticprofile/nautilus/job.lock
+  retention:
+    after-backup: true
+    keep-within: 30d
+    host: nautilus
+    tag:
+      - core,home-and-host-config
+    path: true
+    prune: true
   backup:
+    schedule: "*-*-* 04:00:00 America/Toronto"
+    schedule-permission: system
+    schedule-after-network-online: true
+    schedule-lock-wait: 30m
+    schedule-capture-environment: []
     source:
       - /home/rdmm404
       - /etc
@@ -40,8 +55,12 @@ groups:
   homelab-core:
     - nautilus
 
-# No timers, alerts, retention/pruning, automatic init or OS images.
+# Daily root-run backup at 04:00 America/Toronto; native schedule installs a
+# persistent systemd timer only when the user runs `resticprofile schedule`.
+# Retention/pruning runs only after success, scoped to Nautilus core snapshots.
+# Native success webhook refreshes Gatus's 36-hour heartbeat; no custom checker.
+# No automatic repository init or OS images.
 # /etc is recovery reference; never blindly overwrite another host's identities.
-# HA completed archives and AdGuard configuration/leases/statistics are ordinary
-# included files. Stats use bbolt, not SQLite; raw live stats capture is best-
-# effort until restore/snapshot consistency is separately verified.
+# HA completed archives and AdGuard configuration/leases/filters are ordinary
+# included files; recent dynamic lease loss is accepted. AdGuard statistics are
+# excluded by user choice; preparation must not stop AdGuard DNS/DHCP.
