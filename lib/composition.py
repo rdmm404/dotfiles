@@ -19,7 +19,7 @@ class CompositionError(Exception):
 
 
 FORMATS = {"toml"}
-PLATFORMS = ("macos", "omarchy", "ubuntu")
+PLATFORMS = ("macos", "omarchy", "ubuntu", "debian")
 
 
 def merge_target(relative):

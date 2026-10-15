@@ -1,0 +1,6 @@
+# Preserve the existing SSH-host preferences while inheriting shared bindings.
+[ui]
+agent_panel_scope = "all"
+
+[ui.toast]
+delivery = "terminal"

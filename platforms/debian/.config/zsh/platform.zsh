@@ -1,0 +1,1 @@
+../../../ubuntu/.config/zsh/platform.zsh

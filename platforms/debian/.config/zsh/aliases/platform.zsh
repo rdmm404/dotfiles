@@ -1,0 +1,1 @@
+../../../../ubuntu/.config/zsh/aliases/platform.zsh

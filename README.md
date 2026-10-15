@@ -1,10 +1,12 @@
 # Dotfiles
 
 This repository uses `dot` to install applications and link shared and
-platform-specific configuration on macOS, Omarchy, and Ubuntu.
+platform-specific configuration on macOS, Omarchy, Ubuntu, and Debian.
 
 The [Ubuntu SSH-first setup](docs/ubuntu-setup.md) keeps XFCE unchanged and
 selects Zsh, CLI tools, and Herdr rather than desktop applications.
+The [Debian agent-host setup](docs/debian-setup.md) uses the same shell foundation
+without deploying Nautilus backup profiles or taking ownership of agent units.
 
 ## Quick start
 

@@ -5,10 +5,10 @@ command. It is a Bash entry point with Python-backed filesystem operations.
 
 ## General contract
 
-- Supported platforms are macOS, Omarchy, and Ubuntu (including Xubuntu);
-  the active platform is detected automatically. Ubuntu detection uses
-  `ID=ubuntu` in `/etc/os-release`, not merely `ID_LIKE=debian`.
-  `DOT_PLATFORM` can explicitly select one of the three platforms.
+- Supported platforms are macOS, Omarchy, Ubuntu (including Xubuntu), and Debian;
+  the active platform is detected automatically. Ubuntu and Debian detection use
+  `ID=ubuntu` and `ID=debian` respectively, not merely `ID_LIKE=debian`.
+  `DOT_PLATFORM` can explicitly select one of the four platforms.
 - `global/` is the base layer; `platforms/<platform>/` takes precedence for
   colliding files. Normal platform files replace the whole global file;
   `.merge.toml` platform files explicitly opt into composition.
@@ -182,6 +182,7 @@ global/
 platforms/macos/
 platforms/omarchy/
 platforms/ubuntu/
+platforms/debian/
 manifests/core
 manifests/development
 manifests/optional
@@ -198,6 +199,8 @@ selection rules.
 Ubuntu overrides core and development for an SSH-first setup: no Ghostty,
 VS Code, or server-side Nerd Font installation. See [Ubuntu setup](ubuntu-setup.md)
 for package mappings, shell behavior, and installation boundaries.
+Debian reuses that shell/application foundation but not Ubuntu's backup files;
+see [Debian setup](debian-setup.md) for its local-agent migration procedure.
 
 ## Dependencies
 

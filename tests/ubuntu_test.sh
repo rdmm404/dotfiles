@@ -27,9 +27,8 @@ ubuntu_platform_test() {
     DOT_PLATFORM='' OMARCHY='' DOT_OS_RELEASE="$TEST_TMP/os-release" platform_detect
     [ "$PLATFORM" = ubuntu ]
     printf 'ID=debian\n' > "$TEST_TMP/os-release"
-    if DOT_PLATFORM='' OMARCHY='' DOT_OS_RELEASE="$TEST_TMP/os-release" platform_detect; then
-      fail 'Debian incorrectly detected as Ubuntu'
-    fi
+    DOT_PLATFORM='' OMARCHY='' DOT_OS_RELEASE="$TEST_TMP/os-release" platform_detect
+    [ "$PLATFORM" = debian ]
   fi
 }
 

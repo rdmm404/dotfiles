@@ -3,7 +3,7 @@
 platform_detect() {
   if [ -n "${DOT_PLATFORM:-}" ]; then
     case "$DOT_PLATFORM" in
-      macos|omarchy|ubuntu) PLATFORM="$DOT_PLATFORM"; return 0 ;;
+      macos|omarchy|ubuntu|debian) PLATFORM="$DOT_PLATFORM"; return 0 ;;
       *) dot_error "unsupported platform override: $DOT_PLATFORM"; return 1 ;;
     esac
   fi
@@ -19,13 +19,16 @@ platform_detect() {
       elif [ -r "${DOT_OS_RELEASE:-/etc/os-release}" ] &&
         ( . "${DOT_OS_RELEASE:-/etc/os-release}"; [ "${ID:-}" = ubuntu ] ); then
         PLATFORM=ubuntu
+      elif [ -r "${DOT_OS_RELEASE:-/etc/os-release}" ] &&
+        ( . "${DOT_OS_RELEASE:-/etc/os-release}"; [ "${ID:-}" = debian ] ); then
+        PLATFORM=debian
       else
-        dot_error 'could not detect a supported platform (expected macOS, Omarchy, or Ubuntu)'
+        dot_error 'could not detect a supported platform (expected macOS, Omarchy, Ubuntu, or Debian)'
         return 1
       fi
       ;;
     *)
-      dot_error 'could not detect a supported platform (expected macOS, Omarchy, or Ubuntu)'
+      dot_error 'could not detect a supported platform (expected macOS, Omarchy, Ubuntu, or Debian)'
       return 1
       ;;
   esac
@@ -37,6 +40,7 @@ platform_label() {
     macos) printf 'macOS' ;;
     omarchy) printf 'Omarchy' ;;
     ubuntu) printf 'Ubuntu' ;;
+    debian) printf 'Debian' ;;
     *) printf '%s' "$1" ;;
   esac
 }
@@ -46,6 +50,7 @@ platform_load_installer() {
     macos) . "$DOT_ROOT/installers/macos.sh" ;;
     omarchy) . "$DOT_ROOT/installers/omarchy.sh" ;;
     ubuntu) . "$DOT_ROOT/installers/ubuntu.sh" ;;
+    debian) . "$DOT_ROOT/installers/debian.sh" ;;
     *) dot_error "no installer for platform: $1"; return 1 ;;
   esac
 }

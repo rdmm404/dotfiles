@@ -38,10 +38,16 @@ configuration_deploy_test() {
   [ -f "$configuration_tmp/home/.config/vscode/settings.json" ] || { rm -rf "$configuration_tmp"; fail 'Linux VS Code settings missing'; return 1; }
 
   case "$configuration_platform" in
-    ubuntu)
+    ubuntu|debian)
       assert_linked "$configuration_tmp/home/.zshenv" || { rm -rf "$configuration_tmp"; return 1; }
       assert_linked "$configuration_tmp/home/.config/herdr/config.toml" || { rm -rf "$configuration_tmp"; return 1; }
-      assert_contains "$configuration_tmp/home/.config/herdr/config.toml" 'Shared personal tmux-style controls' || { rm -rf "$configuration_tmp"; return 1; }
+      assert_contains "$configuration_tmp/home/.config/herdr/config.toml" 'new_workspace = "prefix+shift+c"' || { rm -rf "$configuration_tmp"; return 1; }
+      if [ "$configuration_platform" = debian ]; then
+        assert_contains "$configuration_tmp/home/.config/herdr/config.toml" 'delivery = "terminal"' || { rm -rf "$configuration_tmp"; return 1; }
+        assert_contains "$configuration_tmp/home/.config/herdr/config.toml" 'agent_panel_scope = "all"' || { rm -rf "$configuration_tmp"; return 1; }
+        [ ! -e "$configuration_tmp/home/.config/resticprofile" ] || { rm -rf "$configuration_tmp"; fail 'Debian deployed Nautilus backup configuration'; return 1; }
+        [ ! -e "$configuration_tmp/home/.config/systemd" ] || { rm -rf "$configuration_tmp"; fail 'Debian took ownership of local agent units'; return 1; }
+      fi
       for desktop_path in .config/hypr .config/uwsm .config/xfce4 .config/ghostty/config .config/Code; do
         [ ! -e "$configuration_tmp/home/$desktop_path" ] || { rm -rf "$configuration_tmp"; fail "Ubuntu deployed $desktop_path"; return 1; }
       done
@@ -91,4 +97,5 @@ shared_configuration_test || exit 1
 configuration_deploy_test macos || exit 1
 configuration_deploy_test omarchy || exit 1
 configuration_deploy_test ubuntu || exit 1
+configuration_deploy_test debian || exit 1
 printf 'configuration tests passed\n'

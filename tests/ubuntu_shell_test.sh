@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -e
 REPO=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+SHELL_PLATFORM="${DOT_SHELL_PLATFORM:-ubuntu}"
 if ! command -v zsh >/dev/null 2>&1; then
   printf 'SKIP Ubuntu shell runtime tests: zsh is not installed\n'
   exit 0
@@ -9,8 +10,8 @@ TMP=$(mktemp -d "${TMPDIR:-/tmp}/dot-ubuntu-shell.XXXXXX")
 trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$TMP/home/.config" "$TMP/bin" "$TMP/home/.local/share/fnm"
 cp -R "$REPO/global/.config/zsh" "$TMP/home/.config/"
-cp -R "$REPO/platforms/ubuntu/.config/zsh/." "$TMP/home/.config/zsh/"
-cp "$REPO/global/.zshrc" "$REPO/platforms/ubuntu/.zshenv" "$TMP/home/"
+cp -RL "$REPO/platforms/$SHELL_PLATFORM/.config/zsh/." "$TMP/home/.config/zsh/"
+cp "$REPO/global/.zshrc" "$REPO/platforms/$SHELL_PLATFORM/.zshenv" "$TMP/home/"
 ZAP="$TMP/home/.local/share/zap"
 mkdir -p "$ZAP/plugins"
 printf 'typeset -a ZAP_INSTALLED_PLUGINS=()\n' > "$ZAP/zap.zsh"
@@ -117,10 +118,22 @@ HOME="$TMP/home" ZDOTDIR="$TMP/home" XDG_DATA_HOME="$TMP/home/.local/share" \
   ' > "$TMP/output" 2> "$TMP/error"
 [ ! -s "$TMP/error" ] || { cat "$TMP/error" >&2; exit 1; }
 [ ! -e "$TMP/home/unexpected" ]
+# Debian also exposes existing Node/Codex to noninteractive SSH without fnm init.
+if [ "$SHELL_PLATFORM" = debian ]; then
+  mkdir -p "$TMP/home/.local/share/fnm/aliases/default/bin"
+  for tool in node codex pi; do
+    printf '#!/bin/sh\nexit 0\n' > "$TMP/home/.local/share/fnm/aliases/default/bin/$tool"
+    chmod +x "$TMP/home/.local/share/fnm/aliases/default/bin/$tool"
+  done
+fi
 # Noninteractive SSH commands need user binaries but must not initialize plugins.
 HOME="$TMP/home" ZDOTDIR="$TMP/home" PATH=/usr/bin:/bin zsh -d -c '
   [[ ":$PATH:" == *":$HOME/.local/bin:"* ]] || exit 1
   [[ -z "$DOT_TEST_FNM_READY" ]] || exit 1
+  if [[ -d "$HOME/.local/share/fnm/aliases/default/bin" ]]; then
+    [[ ":$PATH:" == *":$HOME/.local/share/fnm/aliases/default/bin:"* ]] || exit 1
+    [[ "$(command -v codex)" == "$HOME/.local/share/fnm/aliases/default/bin/codex" ]] || exit 1
+  fi
 ' > "$TMP/noninteractive"
 [ ! -s "$TMP/noninteractive" ]
-printf 'Ubuntu shell tests passed\n'
+printf '%s shell tests passed\n' "$SHELL_PLATFORM"
