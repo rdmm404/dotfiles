@@ -2,11 +2,11 @@
 -- replace Omarchy's defaults.
 
 -- Keep keyboard focus stable while moving the pointer between windows.
-hl.config({
-  input = {
-    follow_mouse = 0,
-  },
-})
+-- hl.config({
+--   input = {
+--     follow_mouse = 0,
+--   },
+-- })
 
 -- Keyboard layout and options.
 -- See https://wiki.hypr.land/Configuring/Basics/Variables/#input
