@@ -24,6 +24,15 @@ files_command() {
   DOT_PLATFORM="$PLATFORM" python3 "$DOT_ROOT/lib/files.py" "$@"
 }
 
+udev_command() {
+  platform_detect || return 1
+  command -v python3 >/dev/null 2>&1 || {
+    dot_error 'python3 is required for udev installation'
+    return 1
+  }
+  DOT_PLATFORM="$PLATFORM" python3 "$DOT_ROOT/lib/udev.py" "$@"
+}
+
 dot_usage() {
   cat <<'EOF'
 Usage: dot <command> [options]
@@ -33,6 +42,7 @@ Commands:
   install [options]              Install missing applications
   bootstrap [options]            Install applications and deploy configuration
   deploy [options]               Deploy configuration into HOME
+  udev [options]                 Install Linux keyboard permission rules
   undeploy [options]             Remove repository-owned links
   add PATH... (--global|--platform)  Import files or directories into a layer
   backups <command>              List or manage replacement backups
@@ -71,6 +81,9 @@ EOF
       ;;
     deploy)
       files_command deploy --help
+      ;;
+    udev)
+      udev_command --help
       ;;
     undeploy)
       files_command undeploy --help

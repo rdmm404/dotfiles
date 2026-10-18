@@ -124,6 +124,10 @@ case "${1:-help}" in
     shift
     deploy_command_with_args "$@"
     ;;
+  udev)
+    shift
+    udev_command "$@"
+    ;;
   undeploy)
     shift
     undeploy_command_with_args "$@"

@@ -112,6 +112,31 @@ links, but `undeploy` can still find recorded generated destinations.
 Dot does not support `.stowrc` option files in HOME or the repository, nor
 deploying `.stowrc` itself. Use `.stow-local-ignore` for ignore rules instead.
 
+### `dot udev`
+
+```bash
+./dot udev [--dry-run] [--verbose] [--replace]
+```
+
+On Linux, installs the rules from `system/linux/udev/` as root-owned `0644`
+regular files in `/etc/udev/rules.d/`. They are not HOME-layer files and are
+never symlinked. The Keychron rule matches vendor `3434`; the AL80 rule matches
+vendor/product `28e9:30af`. macOS is skipped.
+
+Identical root-owned rules with the expected mode are unchanged and require no
+privilege elevation. Differing regular files require explicit `--replace` and
+are backed up to `*.rules.bak.<timestamp>` beside their destinations. Identical
+files with incorrect ownership/mode are reinstalled without requiring
+`--replace`. Symlink or directory destinations are refused. Conflicts are checked
+before installing anything and rechecked after authentication. Later failures
+retain earlier successful work, including when reloading udev fails.
+
+`--dry-run` does not write or authenticate; `--verbose` lists unchanged rules.
+Installation uses `sudo` with an interactive terminal and `pkexec` otherwise.
+After changes, it reloads udev rules, triggers an add event for the HID subsystem,
+and waits for processing to finish. Python 3.7+ is required. Neither `deploy`
+nor `bootstrap` invokes this command automatically.
+
 ### `dot add`
 
 ```bash
@@ -186,6 +211,7 @@ platforms/debian/
 manifests/core
 manifests/development
 manifests/optional
+system/linux/udev/     # privileged copies, installed only by dot udev
 ```
 
 Manifest files contain one logical application name per line; blank lines and

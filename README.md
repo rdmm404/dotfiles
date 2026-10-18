@@ -47,6 +47,29 @@ and backup workflows.
 `add` imports recursively and links files back into place. It never overwrites
 tracked files or stages anything in Git. Preview changes with `--dry-run`.
 
+## Linux keyboard permissions
+
+VIA/Vial need raw HID access on Linux. Rules live in `system/linux/udev/`,
+separate from the home-directory layers: Keychron access is vendor-wide (`3434`),
+while the AL80 rule matches only `28e9:30af` (its vendor ID is shared with other
+GDMicro devices).
+
+```bash
+./dot udev --dry-run --verbose
+./dot udev
+./dot udev --replace            # back up and replace differing installed rules
+```
+
+This installs root-owned `0644` copies into `/etc/udev/rules.d/`, reloads udev,
+and reapplies permissions to connected HID devices. Authentication uses `sudo`
+in an interactive terminal, or `pkexec` otherwise. Unchanged rules need no
+privileges. Differing rules require `--replace`; backups remain beside the
+installed rules as `*.rules.bak.<timestamp>`. Non-regular destinations are refused.
+
+The command skips macOS. It is deliberately separate from `deploy` and
+`bootstrap`: those commands do not change system device permissions. After
+installation, refresh VIA and authorize the keyboard again.
+
 Run `bash tests/run` for the test suite (requires Python, Stow, ripgrep, and UV).
 
 ## Dependencies
