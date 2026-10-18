@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+data_dir="${XDG_DATA_HOME:-$HOME/.local/share}/python-calculator"
+
+if [[ ${1:-} == --attach ]]; then
+  # Closing the terminal disconnects only the client, not the IPython process.
+  # Resolve UV now: the tmux server may have inherited an older PATH.
+  printf -v command '%q ' "$(command -v uv)" run --quiet --locked --script "$data_dir/calculator.py"
+  exec tmux -L python-calculator -f "$data_dir/tmux.conf" \
+    new-session -A -s calculator -c "$HOME" "$command"
+fi
+
+printf -v launch '%q ' uwsm-app -- xdg-terminal-exec \
+  --app-id=local.python.Calculator --title=Calculator \
+  -e "$HOME/.local/bin/python-calculator" --attach
+exec omarchy-launch-or-focus '^local\.python\.Calculator$' "$launch"

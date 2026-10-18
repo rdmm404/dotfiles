@@ -47,6 +47,12 @@ and backup workflows.
 `add` imports recursively and links files back into place. It never overwrites
 tracked files or stages anything in Git. Preview changes with `--dry-run`.
 
+## Omarchy calculator
+
+**Super+Ctrl+Q** or **Calculator (Python)** in the app launcher opens a persistent
+floating IPython calculator with SymPy and units. Closing the window keeps its
+state; `exit()` starts fresh next time. See the [calculator guide](docs/python-calculator.md).
+
 ## Linux keyboard permissions
 
 VIA/Vial need raw HID access on Linux. Rules live in `system/linux/udev/`,

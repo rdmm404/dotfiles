@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Calculator (Python)
+GenericName=Calculator
+Comment=Persistent IPython calculator with exact maths and units
+Exec=python-calculator
+Icon=accessories-calculator
+Terminal=false
+Categories=Utility;Calculator;
+Keywords=calculator;python;ipython;sympy;pint;units;math;
+StartupWMClass=local.python.Calculator

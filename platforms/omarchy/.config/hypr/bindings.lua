@@ -25,6 +25,12 @@ o.bind("SUPER + D", "Downloads", { launch = 'nautilus "$HOME/Downloads"' })
 hl.unbind("SUPER + SHIFT + A")
 o.bind("SUPER + SHIFT + A", "ChatGPT (native)", { launch = "chatgpt" })
 
+-- Replace Omacalc with the persistent Python calculator.
+hl.unbind("SUPER + CTRL + Q")
+hl.unbind("XF86Calculator")
+o.bind("SUPER + CTRL + Q", "Calculator (Python)", "python-calculator")
+o.bind("XF86Calculator", "Calculator (Python)", "python-calculator")
+
 -- Launch Herdr with compact Ghostty padding while preserving the current directory.
 hl.unbind("SUPER + CTRL + RETURN")
 o.bind(
