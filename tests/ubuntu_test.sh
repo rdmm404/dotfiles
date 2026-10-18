@@ -21,14 +21,21 @@ ubuntu_platform_test() {
   [ "$PLATFORM" = ubuntu ]
   [ "$(platform_label ubuntu)" = Ubuntu ]
   # Test os-release parsing independently of this test runner's distribution.
-  if [ ! -f /etc/omarchy-release ]; then
-    printf 'ID=ubuntu\nID_LIKE=debian\n' > "$TEST_TMP/os-release"
-    uname() { printf 'Linux\n'; }
-    DOT_PLATFORM='' OMARCHY='' DOT_OS_RELEASE="$TEST_TMP/os-release" platform_detect
-    [ "$PLATFORM" = ubuntu ]
-    printf 'ID=debian\n' > "$TEST_TMP/os-release"
-    DOT_PLATFORM='' OMARCHY='' DOT_OS_RELEASE="$TEST_TMP/os-release" platform_detect
-    [ "$PLATFORM" = debian ]
+  printf 'ID=ubuntu\nID_LIKE=debian\n' > "$TEST_TMP/os-release"
+  uname() { printf 'Linux\n'; }
+  DOT_PLATFORM='' OMARCHY='' DOT_OS_RELEASE="$TEST_TMP/os-release" platform_detect
+  [ "$PLATFORM" = ubuntu ]
+  # Even an inherited Omarchy environment must not defeat an explicit fixture.
+  DOT_PLATFORM='' OMARCHY=1 DOT_OS_RELEASE="$TEST_TMP/os-release" platform_detect
+  [ "$PLATFORM" = ubuntu ]
+  printf 'ID=debian\n' > "$TEST_TMP/os-release"
+  DOT_PLATFORM='' OMARCHY='' DOT_OS_RELEASE="$TEST_TMP/os-release" platform_detect
+  [ "$PLATFORM" = debian ]
+  printf 'ID=omarchy\n' > "$TEST_TMP/os-release"
+  DOT_PLATFORM='' OMARCHY='' DOT_OS_RELEASE="$TEST_TMP/os-release" platform_detect
+  [ "$PLATFORM" = omarchy ]
+  if DOT_PLATFORM='' OMARCHY=1 DOT_OS_RELEASE="$TEST_TMP/missing" platform_detect; then
+    fail 'missing os-release override fell back to host detection'
   fi
 }
 

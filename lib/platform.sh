@@ -13,14 +13,17 @@ platform_detect() {
       PLATFORM=macos
       ;;
     Linux)
-      if [ -n "${OMARCHY:-}" ] || [ -f /etc/omarchy-release ] || \
-        { [ -r /etc/os-release ] && grep -qi omarchy /etc/os-release; }; then
+      local os_release="${DOT_OS_RELEASE:-/etc/os-release}"
+      # An explicit os-release override must not inherit the host's Omarchy hints.
+      if { [ -z "${DOT_OS_RELEASE:-}" ] &&
+        { [ -n "${OMARCHY:-}" ] || [ -f /etc/omarchy-release ]; }; } || \
+        { [ -r "$os_release" ] && grep -qi omarchy "$os_release"; }; then
         PLATFORM=omarchy
-      elif [ -r "${DOT_OS_RELEASE:-/etc/os-release}" ] &&
-        ( . "${DOT_OS_RELEASE:-/etc/os-release}"; [ "${ID:-}" = ubuntu ] ); then
+      elif [ -r "$os_release" ] &&
+        ( . "$os_release"; [ "${ID:-}" = ubuntu ] ); then
         PLATFORM=ubuntu
-      elif [ -r "${DOT_OS_RELEASE:-/etc/os-release}" ] &&
-        ( . "${DOT_OS_RELEASE:-/etc/os-release}"; [ "${ID:-}" = debian ] ); then
+      elif [ -r "$os_release" ] &&
+        ( . "$os_release"; [ "${ID:-}" = debian ] ); then
         PLATFORM=debian
       else
         dot_error 'could not detect a supported platform (expected macOS, Omarchy, Ubuntu, or Debian)'

@@ -11,18 +11,18 @@ export HOME="$TEST_HOME" DOT_ROOT="$TEST_ROOT"
 DOT_PLATFORM=debian platform_detect
 [ "$PLATFORM" = debian ]
 [ "$(platform_label debian)" = Debian ]
-if [ ! -f /etc/omarchy-release ]; then
-  uname() { printf 'Linux\n'; }
-  printf 'ID=debian\n' > "$TEST_TMP/os-release"
-  DOT_PLATFORM='' OMARCHY='' DOT_OS_RELEASE="$TEST_TMP/os-release" platform_detect
-  [ "$PLATFORM" = debian ]
-  printf 'ID=ubuntu\nID_LIKE=debian\n' > "$TEST_TMP/os-release"
-  DOT_PLATFORM='' OMARCHY='' DOT_OS_RELEASE="$TEST_TMP/os-release" platform_detect
-  [ "$PLATFORM" = ubuntu ]
-  printf 'ID=unknown\nID_LIKE=debian\n' > "$TEST_TMP/os-release"
-  if DOT_PLATFORM='' OMARCHY='' DOT_OS_RELEASE="$TEST_TMP/os-release" platform_detect; then
-    fail 'unsupported derivative selected Debian'
-  fi
+uname() { printf 'Linux\n'; }
+printf 'ID=debian\n' > "$TEST_TMP/os-release"
+DOT_PLATFORM='' OMARCHY='' DOT_OS_RELEASE="$TEST_TMP/os-release" platform_detect
+[ "$PLATFORM" = debian ]
+DOT_PLATFORM='' OMARCHY=1 DOT_OS_RELEASE="$TEST_TMP/os-release" platform_detect
+[ "$PLATFORM" = debian ]
+printf 'ID=ubuntu\nID_LIKE=debian\n' > "$TEST_TMP/os-release"
+DOT_PLATFORM='' OMARCHY='' DOT_OS_RELEASE="$TEST_TMP/os-release" platform_detect
+[ "$PLATFORM" = ubuntu ]
+printf 'ID=unknown\nID_LIKE=debian\n' > "$TEST_TMP/os-release"
+if DOT_PLATFORM='' OMARCHY='' DOT_OS_RELEASE="$TEST_TMP/os-release" platform_detect; then
+  fail 'unsupported derivative selected Debian'
 fi
 PLATFORM=debian
 mkdir -p "$DOT_ROOT/manifests/ubuntu" "$DOT_ROOT/manifests/debian"
