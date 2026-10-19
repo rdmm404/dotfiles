@@ -13,8 +13,8 @@ preselected), then zoxide folders that have no open workspace.
 | Enter on a workspace | New agent tab in that workspace, in its folder |
 | Enter on a folder | New workspace named after the folder |
 | Type a path that exists, then Enter | Same as a folder row |
-| ctrl-w on a workspace or folder | Prompts for a branch, then a new git worktree workspace |
-| Esc | Cancel |
+| ctrl-w on a workspace or folder | Opens the branch picker for that repo (see below) |
+| Esc | Back to the previous step. On the first step, cancel |
 
 So `prefix+a`, Enter, Enter means "another agent tab right here, same agent as
 last time".
@@ -22,10 +22,25 @@ last time".
 A workspace's folder is its git checkout path, or else its first pane's cwd.
 Picking a folder whose workspace is already open reuses that workspace.
 
-Worktrees use `herdr worktree create` from the folder's current `HEAD`. If the
-branch already exists locally, Herdr checks it out. Checkouts land in
+### Worktrees (ctrl-w)
+
+The branch picker lists local branches (newest first), then branches that only
+exist on `origin`. Branches already checked out somewhere show their folder.
+`ctrl-r` fetches origin and refreshes the list. Typing a name that matches
+nothing and pressing Enter (or `alt-enter` to force the typed name) uses it as is.
+
+| Branch | Result |
+| --- | --- |
+| Already checked out in a worktree | Reuses that checkout: a new tab if a workspace is open there, else `herdr worktree open` |
+| Local, not checked out | `herdr worktree create` checks it out in a new worktree |
+| Only on origin (e.g. someone's PR) | Makes a local branch tracking `origin/<branch>`, then a new worktree |
+| New name | New branch from the repo's current `HEAD`, new worktree |
+
+Git only lets a branch be checked out in one place, which is why the first row
+reuses the checkout instead of failing. New checkouts land in
 `~/worktrees/<repo>/<branch-slug>` (`worktrees.directory` in the Herdr
-config), and the workspace is named after the branch.
+config), and the workspace is named after the branch. It works from a linked
+worktree too: herdr wants the repo's main checkout, so the script passes that.
 
 ## Picking the agent
 

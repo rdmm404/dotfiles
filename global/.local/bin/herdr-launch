@@ -4,8 +4,12 @@
 #   Enter on an open workspace  -> new agent tab in that workspace
 #   Enter on a folder           -> new agent tab in the workspace for that folder,
 #                                  or a new workspace if none is open
-#   ctrl-w on either            -> new git worktree (herdr worktree create), agent in it
+#   ctrl-w on either            -> branch picker, then a worktree for that branch:
+#                                    checked out somewhere already -> reuse that checkout
+#                                    only on origin -> local tracking branch, new worktree
+#                                    new name       -> new branch from HEAD, new worktree
 #   typing a path that exists   -> treated like a folder row
+#   esc in a later step         -> back to the previous step
 #
 # Meant to run as a Herdr popup (see [[keys.command]] in herdr config.toml).
 # Needs: fzf, jq. Optional: zoxide (folder rows).
@@ -16,6 +20,27 @@ STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/herdr-launch
 LAST_AGENT_FILE=$STATE_DIR/last-agent
 KNOWN_AGENTS=(pi claude opencode codex gemini)
 TAB=$'\t'
+SELF=$(cd "$(dirname "$0")" && pwd)/$(basename "$0")
+
+# Internal: branch rows for the branch picker (also used by its ctrl-r reload).
+# Output: branch<TAB>display. Local branches first, then origin-only ones.
+if [ "${1:-}" = --list-branches ]; then
+  dir=$2
+  [ "${3:-}" = fetch ] && git -C "$dir" fetch -q --prune origin >/dev/null 2>&1
+  local_branches=$(git -C "$dir" for-each-ref --sort=-committerdate \
+    --format='%(refname:short)%09%(worktreepath)' refs/heads)
+  awk -F'\t' -v home="$HOME" '{
+    shown = $2
+    if (index(shown, home) == 1) shown = "~" substr(shown, length(home) + 1)
+    if (shown != "") printf "%s\t%s  \033[33m● %s\033[0m\n", $1, $1, shown
+    else printf "%s\t%s\n", $1, $1
+  }' <<<"$local_branches"
+  git -C "$dir" for-each-ref --sort=-committerdate --format='%(refname:lstrip=3)' refs/remotes/origin |
+    awk -v OFS='\t' 'NR == FNR { split($0, f, "\t"); have[f[1]] = 1; next }
+      $0 != "HEAD" && !($0 in have) { print $0, $0 "  \033[90morigin\033[0m" }' \
+      <(printf '%s\n' "$local_branches") -
+  exit 0
+fi
 
 fail() {
   printf '\n\033[31merror:\033[0m %s\n' "$*" >&2
@@ -74,40 +99,8 @@ build_rows() {
     }' <(printf '%s\n' "$workspaces") -
 }
 
-picked=$(build_rows | fzf --ansi --no-sort --delimiter="$TAB" --with-nth=4 \
-  --print-query --expect=ctrl-w \
-  --prompt='where> ' --border-label=' launch agent ' \
-  --header='enter: new agent tab  ·  ctrl-w: new worktree  ·  esc: cancel')
-status=$?
-[ "$status" -eq 130 ] && exit 0
-
-query=$(sed -n 1p <<<"$picked")
-key=$(sed -n 2p <<<"$picked")
-row=$(sed -n 3p <<<"$picked")
-
-if [ -n "$row" ]; then
-  IFS=$TAB read -r kind target_ws dir _ <<<"$row"
-  [ "$target_ws" = "-" ] && target_ws=""
-else
-  # Nothing matched: accept a typed path.
-  dir=${query/#\~/$HOME}
-  [ -n "$dir" ] && [ -d "$dir" ] || exit 0
-  dir=$(cd "$dir" && pwd -P)
-  kind=dir
-  target_ws=""
-fi
-[ "$kind" = dir ] && [ -z "$target_ws" ] && target_ws=$(workspace_for_dir "$dir")
-[ -n "$dir" ] && [ -d "$dir" ] || fail "folder does not exist: $dir"
-
-branch=""
-if [ "$key" = ctrl-w ]; then
-  git -C "$dir" rev-parse --show-toplevel >/dev/null 2>&1 || fail "not a git repo: $(pretty "$dir")"
-  printf 'new worktree from %s\n' "$(pretty "$dir")"
-  read -rp 'branch> ' branch
-  [ -n "$branch" ] || exit 0
-fi
-
-# Agent picker: installed agents, last used first.
+# Steps: where -> (branch, with ctrl-w) -> agent. Esc goes back one step;
+# esc on the first step quits.
 last_agent=$(cat "$LAST_AGENT_FILE" 2>/dev/null || true)
 agents=()
 for a in "${KNOWN_AGENTS[@]}"; do
@@ -115,8 +108,94 @@ for a in "${KNOWN_AGENTS[@]}"; do
   if [ "$a" = "$last_agent" ]; then agents=("$a" ${agents[@]+"${agents[@]}"}); else agents+=("$a"); fi
 done
 [ "${#agents[@]}" -gt 0 ] || fail "no supported agent found on PATH (${KNOWN_AGENTS[*]})"
-agent=$(printf '%s\n' "${agents[@]}" | fzf --no-sort --prompt='agent> ' --border-label=' launch agent ')
-[ -n "$agent" ] || exit 0
+
+query=""
+step=where
+while :; do
+  case $step in
+  where)
+    picked=$(build_rows | fzf --ansi --no-sort --delimiter="$TAB" --with-nth=4 \
+      --print-query --expect=ctrl-w --query="$query" \
+      --prompt='where> ' --border-label=' launch agent ' \
+      --header='enter: new agent tab  ·  ctrl-w: worktree  ·  esc: cancel')
+    [ $? -eq 130 ] && exit 0
+    query=$(sed -n 1p <<<"$picked")
+    key=$(sed -n 2p <<<"$picked")
+    row=$(sed -n 3p <<<"$picked")
+
+    if [ -n "$row" ]; then
+      IFS=$TAB read -r kind target_ws dir _ <<<"$row"
+      [ "$target_ws" = "-" ] && target_ws=""
+    else
+      # Nothing matched: accept a typed path.
+      dir=${query/#\~/$HOME}
+      [ -n "$dir" ] && [ -d "$dir" ] || continue
+      dir=$(cd "$dir" && pwd -P)
+      kind=dir
+      target_ws=""
+    fi
+    [ "$kind" = dir ] && [ -z "$target_ws" ] && target_ws=$(workspace_for_dir "$dir")
+    [ -n "$dir" ] && [ -d "$dir" ] || fail "folder does not exist: $dir"
+
+    branch=""
+    if [ "$key" = ctrl-w ]; then
+      git -C "$dir" rev-parse --show-toplevel >/dev/null 2>&1 || fail "not a git repo: $(pretty "$dir")"
+      step=branch
+    else
+      step=agent
+    fi
+    ;;
+  branch)
+    picked=$("$SELF" --list-branches "$dir" | fzf --ansi --no-sort --delimiter="$TAB" --with-nth=2 \
+      --print-query --expect=alt-enter \
+      --bind="ctrl-r:reload($(printf '%q --list-branches %q fetch' "$SELF" "$dir"))" \
+      --prompt='branch> ' --border-label=" worktree from $(pretty "$dir") " \
+      --header='enter: pick (or type a new name)  ·  alt-enter: use typed name  ·  ctrl-r: fetch  ·  esc: back')
+    if [ $? -eq 130 ]; then step=where; continue; fi
+    bquery=$(sed -n 1p <<<"$picked")
+    bkey=$(sed -n 2p <<<"$picked")
+    brow=$(sed -n 3p <<<"$picked")
+    if [ "$bkey" = alt-enter ] || [ -z "$brow" ]; then branch=$bquery; else branch=${brow%%"$TAB"*}; fi
+    [ -n "$branch" ] && step=agent
+    ;;
+  agent)
+    agent=$(printf '%s\n' "${agents[@]}" | fzf --no-sort --prompt='agent> ' \
+      --border-label=' launch agent ' --header='enter: start  ·  esc: back')
+    if [ -n "$agent" ]; then break; fi
+    if [ -n "$branch" ]; then step=branch; else step=where; fi
+    ;;
+  esac
+done
+
+# Turn a branch into an action. mode: tab | workspace | create | open
+if [ -n "$branch" ]; then
+  # herdr starts worktree actions from the repo's main checkout, not a linked one.
+  repo=$(git -C "$dir" worktree list --porcelain | sed -n '1s/^worktree //p')
+  git -C "$dir" check-ref-format --branch "$branch" >/dev/null 2>&1 || fail "not a valid branch name: $branch"
+  if ! git -C "$dir" show-ref -q --verify "refs/heads/$branch"; then
+    # Not local: if origin has it (e.g. a PR branch), track it so the worktree
+    # gets origin's code instead of a new branch off HEAD.
+    printf 'checking origin for %s...\n' "$branch"
+    git -C "$dir" fetch -q origin "$branch" >/dev/null 2>&1
+    if git -C "$dir" show-ref -q --verify "refs/remotes/origin/$branch"; then
+      git -C "$dir" branch -q --track "$branch" "origin/$branch" 2>/dev/null ||
+        fail "could not create $branch from origin/$branch"
+    fi
+  fi
+  wt=$(git -C "$dir" for-each-ref --format='%(worktreepath)' "refs/heads/$branch")
+  if [ -z "$wt" ]; then
+    mode=create
+  else
+    # Git allows a branch in one worktree only, so reuse that checkout.
+    target_ws=$(workspace_for_dir "$wt")
+    if [ -n "$target_ws" ]; then mode=tab; else mode=open; fi
+    dir=$wt
+  fi
+elif [ -n "$target_ws" ]; then
+  mode=tab
+else
+  mode=workspace
+fi
 
 # Lowest free <agent>-<n>. Tab labels count too: an agent still starting up
 # from a previous launch has its tab label but no agent name yet.
@@ -126,19 +205,16 @@ n=1
 while grep -qx "$agent-$n" <<<"$taken"; do n=$((n + 1)); done
 name=$agent-$n
 
-if [ -n "$branch" ]; then
-  out=$("$HERDR" worktree create --cwd "$dir" --branch "$branch" --no-focus 2>&1) || fail "$out"
-elif [ -n "$target_ws" ]; then
-  out=$("$HERDR" tab create --workspace "$target_ws" --cwd "$dir" --label "$name" --no-focus 2>&1) || fail "$out"
-else
-  out=$("$HERDR" workspace create --cwd "$dir" --no-focus 2>&1) || fail "$out"
-fi
+case $mode in
+create) out=$("$HERDR" worktree create --cwd "$repo" --branch "$branch" --no-focus 2>&1) || fail "$out" ;;
+open) out=$("$HERDR" worktree open --cwd "$repo" --path "$wt" --no-focus 2>&1) || fail "$out" ;;
+tab) out=$("$HERDR" tab create --workspace "$target_ws" --cwd "$dir" --label "$name" --no-focus 2>&1) || fail "$out" ;;
+workspace) out=$("$HERDR" workspace create --cwd "$dir" --no-focus 2>&1) || fail "$out" ;;
+esac
 pane=$(jq -r '.result.root_pane.pane_id' <<<"$out")
 tab=$(jq -r '.result.tab.tab_id' <<<"$out")
 # tab create already set the label; new workspaces and worktrees need it.
-if [ -n "$branch" ] || [ -z "$target_ws" ]; then
-  "$HERDR" tab rename "$tab" "$name" >/dev/null 2>&1
-fi
+[ "$mode" = tab ] || "$HERDR" tab rename "$tab" "$name" >/dev/null 2>&1
 
 mkdir -p "$STATE_DIR" && printf '%s\n' "$agent" >"$LAST_AGENT_FILE"
 "$HERDR" tab focus "$tab" >/dev/null 2>&1
