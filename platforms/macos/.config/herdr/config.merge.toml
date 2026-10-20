@@ -6,3 +6,7 @@ next_tab = ["prefix+n", "alt+shift+right"]
 # Keep tab reordering distinct from switching tabs and pane controls.
 move_tab_previous = "prefix+shift+left"
 move_tab_next = "prefix+shift+right"
+
+[ui]
+# Hide the hostname in the top right; keep only the zoom flag.
+tab_bar_right = [{ type = "zoom" }]
