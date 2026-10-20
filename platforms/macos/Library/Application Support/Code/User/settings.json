@@ -116,4 +116,10 @@
   },
   "chat.viewSessions.orientation": "stacked",
   "security.promptForRemoteFileProtocolHandling": false,
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
 }
