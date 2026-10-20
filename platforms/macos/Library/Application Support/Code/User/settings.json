@@ -76,7 +76,7 @@
   "markdown.preview.fontFamily": "FiraCode Nerd Font",
   "editor.inlayHints.fontFamily": "FiraCode Nerd Font",
   "apc.font.family": "FiraCode Nerd Font",
-  "errorLens.enabled": true,
+  "errorLens.enabled": false,
   "vscode-pets.petColor": "green",
   "vscode-pets.petSize": "small",
   "vscode-pets.throwBallWithMouse": true,
