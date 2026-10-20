@@ -50,6 +50,9 @@ resize_pane_right = "ctrl+alt+shift+right"
 # No tmux equivalent; herdr's default prefix+shift+p is taken by previous session
 rename_pane = "prefix+shift+o"
 
+# herdr's default prefix+s is the shell picker (see [[keys.command]] below)
+settings = "prefix+shift+s"
+
 # Windows -> tabs
 new_tab = "prefix+c"
 rename_tab = "prefix+r"

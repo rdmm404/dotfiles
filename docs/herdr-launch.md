@@ -7,7 +7,7 @@ if any) is typed into that tab's shell, so you watch it start there.
 **prefix+s** (`herdr-launch --shell`) is the same popup without the agent step:
 you get a plain shell tab in the picked place, with herdr's default tab label.
 Everything below (worktrees, remote repos, ranking) works the same. It
-replaces herdr's default `prefix+s` (settings).
+replaces herdr's default `prefix+s` (settings), which moved to `prefix+shift+s`.
 
 ## Picking where
 
