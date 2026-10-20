@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Launch a coding agent in Herdr: pick a place, pick an agent, done.
+# With --shell: same place picker, but the new tab is a plain shell.
 #
 #   Enter on an open workspace  -> new agent tab in that workspace
 #   Enter on a folder           -> new agent tab in the workspace for that folder,
@@ -228,15 +229,16 @@ launch() {
   case $mode in
   create) out=$("$HERDR" worktree create --cwd "$repo" --branch "$branch" --no-focus 2>&1) || fail "$out" ;;
   open) out=$("$HERDR" worktree open --cwd "$repo" --path "$wt" --no-focus 2>&1) || fail "$out" ;;
-  tab) out=$("$HERDR" tab create --workspace "$target_ws" --cwd "$dir" --label "$name" --no-focus 2>&1) || fail "$out" ;;
+  tab) out=$("$HERDR" tab create --workspace "$target_ws" --cwd "$dir" ${name:+--label "$name"} --no-focus 2>&1) || fail "$out" ;;
   workspace) out=$("$HERDR" workspace create --cwd "$dir" ${label:+--label "$label"} --no-focus 2>&1) || fail "$out" ;;
   esac
   pane=$(jq -r '.result.root_pane.pane_id' <<<"$out")
   tab=$(jq -r '.result.tab.tab_id' <<<"$out")
   # tab create already set the label; new workspaces and worktrees need it.
-  [ "$mode" = tab ] || "$HERDR" tab rename "$tab" "$name" >/dev/null 2>&1
+  # Shells have no name and keep herdr's default label.
+  [ "$mode" = tab ] || [ -z "$name" ] || "$HERDR" tab rename "$tab" "$name" >/dev/null 2>&1
   "$HERDR" tab focus "$tab" >/dev/null 2>&1
-  out=$("$HERDR" pane run "$pane" "$cmd" 2>&1) || fail "$out"
+  [ -z "$cmd" ] || out=$("$HERDR" pane run "$pane" "$cmd" 2>&1) || fail "$out"
 }
 
 # --- internal modes --------------------------------------------------------------
@@ -248,8 +250,8 @@ case ${1:-} in
 --rank) rank_rows "$2" "${3:-}"; exit 0 ;;
 --after-clone)
   # Runs inside the clone's pane, in the fresh clone: make the worktree for the
-  # picked branch and start the agent there. The caller then exits this shell,
-  # which closes the temporary clone workspace (herdr won't `workspace close` a
+  # picked branch and start the agent there (empty agent = plain shell, for
+  # --shell). The caller then exits this shell, which closes the temporary clone workspace (herdr won't `workspace close` a
   # repo's main workspace while it has worktree workspaces).
   branch=$2 agent=$3 name=$4
   dir=$PWD target_ws=""
@@ -263,6 +265,9 @@ esac
 
 # --- main ------------------------------------------------------------------------
 
+shell_mode=""
+[ "${1:-}" = --shell ] && shell_mode=1
+
 for bin in fzf jq; do
   command -v "$bin" >/dev/null || fail "$bin is not installed"
 done
@@ -273,15 +278,21 @@ if [ ! -f "$REPOS_CACHE" ] && command -v gh >/dev/null; then
   refresh_repos
 fi
 
-last_agent=$(cat "$LAST_AGENT_FILE" 2>/dev/null || true)
-agents=()
-for a in "${KNOWN_AGENTS[@]}"; do
-  command -v "$a" >/dev/null || continue
-  if [ "$a" = "$last_agent" ]; then agents=("$a" ${agents[@]+"${agents[@]}"}); else agents+=("$a"); fi
-done
-[ "${#agents[@]}" -gt 0 ] || fail "no supported agent found on PATH (${KNOWN_AGENTS[*]})"
+if [ -n "$shell_mode" ]; then
+  title=' open shell ' what='new shell'
+else
+  title=' launch agent ' what='new agent'
+  last_agent=$(cat "$LAST_AGENT_FILE" 2>/dev/null || true)
+  agents=()
+  for a in "${KNOWN_AGENTS[@]}"; do
+    command -v "$a" >/dev/null || continue
+    if [ "$a" = "$last_agent" ]; then agents=("$a" ${agents[@]+"${agents[@]}"}); else agents+=("$a"); fi
+  done
+  [ "${#agents[@]}" -gt 0 ] || fail "no supported agent found on PATH (${KNOWN_AGENTS[*]})"
+fi
 
-# Steps: where -> (branch, with ctrl-w) -> agent. Esc goes back one step;
+# Steps: where -> (branch, with ctrl-w) -> agent (skipped for --shell).
+# Esc goes back one step;
 # esc on the first step quits.
 ROWS=$(mktemp "${TMPDIR:-/tmp}/herdr-launch.XXXXXX")
 trap 'rm -f "$ROWS"' EXIT
@@ -298,8 +309,8 @@ while :; do
       --print-query --expect=ctrl-w --query="$query" \
       --bind="change:reload($rank {q})" \
       --bind="ctrl-r:reload($(printf '%q --rows fetch >%q' "$SELF" "$ROWS"); $rank {q})" \
-      --prompt='where> ' --border-label=' launch agent ' \
-      --header='enter: new agent  ·  ctrl-w: worktree  ·  ctrl-r: refresh repos  ·  esc: cancel')
+      --prompt='where> ' --border-label="$title" \
+      --header="enter: $what  ·  ctrl-w: worktree  ·  ctrl-r: refresh repos  ·  esc: cancel")
     [ $? -eq 130 ] && exit 0
     query=$(sed -n 1p <<<"$picked")
     key=$(sed -n 2p <<<"$picked")
@@ -334,15 +345,15 @@ while :; do
   branch)
     if [ "$kind" = remote ]; then
       list_cmd=$(printf '%q --list-remote-branches %q' "$SELF" "$dir")
-      title=" worktree from $dir (will clone) "
+      btitle=" worktree from $dir (will clone) "
     else
       list_cmd=$(printf '%q --list-branches %q' "$SELF" "$dir")
-      title=" worktree from $(pretty "$dir") "
+      btitle=" worktree from $(pretty "$dir") "
     fi
     picked=$(bash -c "$list_cmd" | fzf --ansi --tiebreak=index --delimiter="$TAB" --with-nth=2 \
       --print-query --expect=alt-enter \
       --bind="ctrl-r:reload($list_cmd fetch)" \
-      --prompt='branch> ' --border-label="$title" \
+      --prompt='branch> ' --border-label="$btitle" \
       --header='enter: pick (or type a new name)  ·  alt-enter: use typed name  ·  ctrl-r: fetch  ·  esc: back')
     if [ $? -eq 130 ]; then step=where; continue; fi
     bquery=$(sed -n 1p <<<"$picked")
@@ -352,16 +363,20 @@ while :; do
     [ -n "$branch" ] && step=agent
     ;;
   agent)
+    if [ -n "$shell_mode" ]; then agent=""; break; fi
     agent=$(printf '%s\n' "${agents[@]}" | fzf --tiebreak=index --prompt='agent> ' \
-      --border-label=' launch agent ' --header='enter: start  ·  esc: back')
+      --border-label="$title" --header='enter: start  ·  esc: back')
     if [ -n "$agent" ]; then break; fi
     if [ -n "$branch" ]; then step=branch; else step=where; fi
     ;;
   esac
 done
 
-mkdir -p "$STATE_DIR" && printf '%s\n' "$agent" >"$LAST_AGENT_FILE"
-pick_name
+name=""
+if [ -n "$agent" ]; then
+  mkdir -p "$STATE_DIR" && printf '%s\n' "$agent" >"$LAST_AGENT_FILE"
+  pick_name
+fi
 cmd=$agent
 label=""
 
@@ -379,7 +394,7 @@ if [ "$kind" = remote ]; then
   fi
   if [ -n "$branch" ] && [ "$branch" != "${default:-}" ]; then
     cmd+=$(printf ' && %q --after-clone %q %q %q && exit' "$SELF" "$branch" "$agent" "$name")
-  else
+  elif [ -n "$agent" ]; then
     cmd+=" && $agent"
   fi
   mode=workspace dir=$CLONE_DIR label=$name_only target_ws=""

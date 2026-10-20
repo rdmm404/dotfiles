@@ -4,6 +4,11 @@ Press **prefix+a** (`ctrl+space a`) in Herdr. A popup asks where, then which
 agent, then closes and focuses the new tab. The agent command (and a clone,
 if any) is typed into that tab's shell, so you watch it start there.
 
+**prefix+s** (`herdr-launch --shell`) is the same popup without the agent step:
+you get a plain shell tab in the picked place, with herdr's default tab label.
+Everything below (worktrees, remote repos, ranking) works the same. It
+replaces herdr's default `prefix+s` (settings).
+
 ## Picking where
 
 The first list holds open workspaces (marked `●`, the current one first and
@@ -89,7 +94,7 @@ If the agent fails to start, the error is right there in its pane.
 ## Files and dependencies
 
 - `~/.local/bin/herdr-launch`: the script (from `global/`)
-- `~/.config/herdr/config.toml`: the `prefix+a` popup binding and
+- `~/.config/herdr/config.toml`: the `prefix+a` and `prefix+s` popup bindings and
   `worktrees.directory`
 - `${XDG_STATE_HOME:-~/.local/state}/herdr-launch/last-agent`: last agent used
 - `${XDG_CACHE_HOME:-~/.cache}/herdr-launch/repos`: remote repo list
