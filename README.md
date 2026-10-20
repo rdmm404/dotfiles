@@ -7,6 +7,7 @@ The [Ubuntu SSH-first setup](docs/ubuntu-setup.md) keeps XFCE unchanged and
 selects Zsh, CLI tools, and Herdr rather than desktop applications.
 The [Debian agent-host setup](docs/debian-setup.md) uses the same shell foundation
 without deploying Nautilus backup profiles or taking ownership of agent units.
+It includes the separately enabled [Bebop home/system backup](docs/bebop-backup.md).
 
 ## Quick start
 

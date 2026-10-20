@@ -1,0 +1,34 @@
+# Bebop home + host configuration. Keep hidden files, .git, ignored secrets,
+# private agent state, unpushed work, installed tools and both AI checkouts.
+# Only specific rebuildable/transient data is excluded.
+/home/rdmm404/.cache
+/home/rdmm404/.npm/_cacache
+/home/rdmm404/.local/share/pnpm/store
+/home/rdmm404/.local/state/fnm_multishells
+/home/rdmm404/go/pkg/mod
+**/node_modules
+**/__pycache__
+**/.venv
+**/.uv-cache
+**/.mypy_cache
+**/.pytest_cache
+**/.ruff_cache
+
+# Private plaintext backup/restore staging; current exports are an explicit
+# source outside home. Do not recursively back up downloads of old backups.
+/home/rdmm404/.local/state/backup
+/home/rdmm404/restic-recovery.*
+/home/rdmm404/.local/share/restic
+
+# Codex transient process state. Sessions/auth/config/SQLite exports are kept.
+/home/rdmm404/.codex/tmp
+/home/rdmm404/.codex/.tmp
+/home/rdmm404/.codex/app-server-control/*.sock
+/home/rdmm404/.codex/app-server-daemon/*.sock
+/home/rdmm404/.config/herdr/herdr.sock
+
+# The preparation helper writes a separate exact SQLite exclusion list for
+# every required/discovered export and its WAL/SHM/journal. No blanket *.db rule.
+# /etc is recovery reference, not a replacement-host overwrite recipe.
+# Docker storage and Tailscale live state are outside the selected sources;
+# rebuild images from source and re-enrol the replacement into Tailscale.

@@ -10,9 +10,11 @@ apply to both distributions; test both profiles. Debian's `.zshenv` additionally
 exposes an existing fnm default Node bin directory for noninteractive SSH.
 
 No desktop configuration, login-shell change, Node installation, agent units,
-or Nautilus backup profiles are deployed. Agent deployment files, startup units,
-credentials and state stay local and are protected by backups, not imported into
-this repository. Existing fnm/Node and Herdr executables are reused. A Debian Herdr overlay
+or Nautilus backup profiles are deployed. Debian deploys Bebop's home/system
+backup profile, but never credentials or scheduling. Review its absolute paths
+before using it on another host. See [Bebop backup](bebop-backup.md).
+Agent deployment files, startup units, credentials and state stay local and are
+protected by backups, not imported into this repository. Existing fnm/Node and Herdr executables are reused. A Debian Herdr overlay
 preserves terminal toast delivery and the existing all-agents panel scope while
 inheriting shared bindings and appearance.
 
@@ -47,4 +49,5 @@ behavior and `acl_fix`. The new repository contains no private credentials.
 
 Keep the old checkout until shell and startup-link checks pass, then retire it.
 Preserve the resulting local files and new deployment in a fresh encrypted
-backup. This procedure does not establish recurring agent backup scheduling.
+backup. Shell deployment alone does not establish recurring agent backup
+scheduling; use the separate [backup procedure](bebop-backup.md).

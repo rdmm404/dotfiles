@@ -1,0 +1,5 @@
+/restic-password
+/rclone.conf
+/gatus.yaml
+__pycache__/
+*.pyc

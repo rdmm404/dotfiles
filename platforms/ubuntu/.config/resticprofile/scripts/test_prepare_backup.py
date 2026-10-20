@@ -51,6 +51,67 @@ class PreparationTests(unittest.TestCase):
             finally:
                 connection.close()
 
+    def sqlite_profile_fixture(self, root, inventory=None):
+        home = root / "home"
+        home.mkdir()
+        live = home / "live.sqlite"
+        with closing(sqlite3.connect(live)) as connection:
+            connection.execute("CREATE TABLE entries (value TEXT)")
+            connection.execute("INSERT INTO entries VALUES ('fixture')")
+            connection.commit()
+        config = root / "sqlite.json"
+        config.write_text(json.dumps({"profile": "bebop", "home": str(home),
+            "state": str(root / "state"), "required": ["live.sqlite"],
+            "discover": ["*.sqlite"], "inventory": inventory or {}}))
+        return config, live
+
+    def test_sqlite_profile_reuses_capture_and_publication_without_nautilus(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            config, live = self.sqlite_profile_fixture(root)
+            globals_before = {name: getattr(m, name) for name in
+                ("PROFILE", "HOME", "STATE", "EXPORTS", "SQLITE_DATABASES", "SQLITE_CONFIG")}
+            with patch.multiple(m, **globals_before), patch.object(m.os, "geteuid", return_value=0), patch.object(m, "inspect_container", side_effect=AssertionError("No Nautilus containers")), patch.object(m.sys, "argv", ["prepare_backup.py", "--sqlite-config", str(config)]), patch.dict(os.environ, {"PROFILE_NAME": "bebop", "PROFILE_COMMAND": "backup"}):
+                m.main()
+                output = root / "state/exports/sqlite/live.sqlite"
+                self.assertTrue(output.is_file())
+                metadata = json.loads((root / "state/exports/restore-metadata.json").read_text())
+                self.assertEqual(metadata["sqlite"]["live.sqlite"]["source"], str(live))
+                self.assertEqual(metadata["sqlite"]["live.sqlite"]["sha256"], m.hashlib.sha256(output.read_bytes()).hexdigest())
+                self.assertEqual((root / "state/sqlite-exclude.txt").read_text().splitlines(),
+                    [str(live) + suffix for suffix in ("", "-wal", "-shm", "-journal")])
+                with patch.object(m.sys, "argv", ["prepare_backup.py", "--sqlite-config", str(config), "--cleanup"]):
+                    m.main()
+                self.assertFalse(output.exists())
+
+    def test_sqlite_profile_missing_required_source_aborts(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            config, live = self.sqlite_profile_fixture(root)
+            live.unlink()
+            globals_before = {name: getattr(m, name) for name in
+                ("PROFILE", "HOME", "STATE", "EXPORTS", "SQLITE_DATABASES", "SQLITE_CONFIG")}
+            with patch.multiple(m, **globals_before), patch.object(m.os, "geteuid", return_value=0):
+                m.configure_sqlite_profile(config)
+                with self.assertRaisesRegex(RuntimeError, "Missing/unsafe SQLite"):
+                    m.preflight()
+                self.assertFalse((root / "state/exports").exists())
+
+    def test_sqlite_profile_inventory_failure_keeps_previous_export(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            config, live = self.sqlite_profile_fixture(root, {"packages.txt": ["dpkg-query"]})
+            old = root / "state/exports"
+            old.mkdir(parents=True)
+            (old / "sentinel").write_text("old")
+            globals_before = {name: getattr(m, name) for name in
+                ("PROFILE", "HOME", "STATE", "EXPORTS", "SQLITE_DATABASES", "SQLITE_CONFIG")}
+            with patch.multiple(m, **globals_before), patch.object(m.os, "geteuid", return_value=0), patch.object(m, "command", side_effect=RuntimeError("inventory failed")), patch.object(m.sys, "argv", ["prepare_backup.py", "--sqlite-config", str(config)]), patch.dict(os.environ, {"PROFILE_NAME": "bebop", "PROFILE_COMMAND": "backup"}):
+                with self.assertRaisesRegex(RuntimeError, "inventory failed"):
+                    m.main()
+            self.assertEqual((old / "sentinel").read_text(), "old")
+            self.assertEqual(list(old.parent.iterdir()), [old])
+
     def test_sqlite_missing_source_does_not_create_a_database(self):
         with tempfile.TemporaryDirectory() as folder:
             source = Path(folder) / "missing.db"
@@ -211,6 +272,40 @@ class PreparationTests(unittest.TestCase):
                 self.assertEqual(str(home / relative) in paths, included, relative)
             self.assertIn(str(metrics), paths)
             run("check", "--read-data")
+
+    @unittest.skipUnless(shutil.which("restic"), "restic binary needed for local fixture test")
+    def test_bebop_exclusions_keep_private_state_and_replace_hot_sqlite(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            home = root / "home"
+            cases = {
+                ".codex/auth.json": True, ".codex/sessions/session.jsonl": True,
+                ".codex/state_5.sqlite": False, ".codex/state_5.sqlite-wal": False,
+                ".codex/tmp/process": False, ".nanobot/.env": True,
+                ".local/bin/voltr-finance": True, ".local/state/herdr/state.json": True,
+                ".local/state/backup/old-export": False, ".ssh/id_ed25519": True,
+                "ai/axis/.git/config": True, "dev/project/.env": True,
+                "dev/project/node_modules/package/file": False,
+                "dev/project/.venv/bin/python": False, ".cache/rebuildable": False,
+                "services/agents/docker-compose.yml": True,
+            }
+            for relative in cases:
+                path = home / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b"offline test fixture")
+            policy = Path(__file__).parents[4] / "debian/.config/resticprofile/exclude.txt"
+            exclusions = root / "exclude.txt"
+            exclusions.write_text(policy.read_text().replace("/home/rdmm404", str(home)) +
+                "\n".join(str(home / ".codex/state_5.sqlite") + suffix
+                          for suffix in ("", "-wal", "-shm", "-journal")) + "\n")
+            env = {**os.environ, "RESTIC_PASSWORD": "offline-test-only", "RESTIC_REPOSITORY": str(root / "repo")}
+            def run(*args):
+                return subprocess.check_output(["restic", *args], env=env, stderr=subprocess.PIPE, text=True)
+            run("init")
+            run("backup", "--exclude-file", str(exclusions), str(home))
+            paths = {node.get("path") for node in map(json.loads, run("ls", "--json", "latest").splitlines())}
+            for relative, included in cases.items():
+                self.assertEqual(str(home / relative) in paths, included, relative)
 
     def stopped_prometheus_case(self, fail_archive=False, fail_stop=False):
         with tempfile.TemporaryDirectory() as folder:

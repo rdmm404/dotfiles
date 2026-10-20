@@ -3,7 +3,10 @@
 # requires-python = ">=3.11"
 # dependencies = ["paho-mqtt==2.1.0"]
 # ///
-"""Prepare Nautilus live state before restic; ordinary home files need no hook.
+"""Prepare live state before restic; ordinary home files need no hook.
+
+Default: Nautilus services. --sqlite-config PATH: declarative SQLite-only host.
+Both modes share online SQLite capture, checked private exports and publication.
 
 Use only through resticprofile: its lock covers preparation/upload/cleanup.
 No config edits, image exports, schedules or repository pruning.
@@ -15,6 +18,7 @@ from contextlib import closing
 import importlib.util
 import io
 import json
+import hashlib
 import os
 import re
 import shutil
@@ -32,6 +36,8 @@ import uuid
 import zipfile
 from pathlib import Path
 
+PROFILE = "nautilus"
+SQLITE_CONFIG = None
 HOME = Path("/home/rdmm404")
 STATE = Path("/var/lib/resticprofile/nautilus")
 EXPORTS = STATE / "exports"
@@ -112,10 +118,31 @@ def copy_stable_file(source, destination):
     return source_metadata(source)
 
 
+def configure_sqlite_profile(path):
+    """Reuse the same export/publication lifecycle for a declarative SQLite host."""
+    global PROFILE, HOME, STATE, EXPORTS, SQLITE_DATABASES, SQLITE_CONFIG
+    SQLITE_CONFIG = json.loads(Path(path).read_text())
+    PROFILE = SQLITE_CONFIG["profile"]
+    HOME = Path(SQLITE_CONFIG["home"])
+    STATE = Path(SQLITE_CONFIG["state"])
+    EXPORTS = STATE / "exports"
+    if not HOME.is_absolute() or not STATE.is_absolute():
+        raise RuntimeError("Backup home/state must be absolute")
+    sources = {HOME / relative for relative in SQLITE_CONFIG["required"]}
+    for pattern in SQLITE_CONFIG.get("discover", []):
+        sources.update(HOME.glob(pattern))
+    if any(not source.is_relative_to(HOME) or ".." in source.parts for source in sources):
+        raise RuntimeError("SQLite sources must remain inside the configured home")
+    SQLITE_DATABASES = [(source, source.relative_to(HOME).as_posix()) for source in sorted(sources)]
+
+
 def preflight():
     """Read-only prerequisites BEFORE any application snapshot request."""
     if os.geteuid() != 0:
         raise RuntimeError("Broad backup needs reviewed privileged execution for root-owned state")
+    if SQLITE_CONFIG is not None:
+        validate_sqlite_sources()
+        return {}  # No Nautilus services or MQTT dependency on a SQLite-only host.
     try:
         import paho.mqtt.client  # Resolved by uv from inline script metadata.
     except ImportError as error:
@@ -129,15 +156,19 @@ def preflight():
         raise RuntimeError("NAUTILUS_PROMETHEUS_STOP_ONCE must be unset or 1")
     if not stop_once and "--web.enable-admin-api" not in prom_args and "--web.enable-admin-api=true" not in prom_args:
         raise RuntimeError("Prometheus snapshot API is disabled. Enable it with reviewed restrictions, or explicitly opt into this run's brief stop")
+    validate_sqlite_sources()
+    if not MQTT_FILE.is_file() or not PROMETHEUS_DATA.is_dir():
+        raise RuntimeError("Required MQTT/Prometheus persistence path is missing")
+    return {name: info["Id"] for name, info in details.items()}
+
+
+def validate_sqlite_sources():
     for source, _ in SQLITE_DATABASES:
         if source.is_symlink() or not source.is_file():
             raise RuntimeError(f"Missing/unsafe SQLite source: {source}")
         with source.open("rb") as stream:
             if stream.read(16) != b"SQLite format 3\x00":
                 raise RuntimeError(f"Not a SQLite database: {source}")
-    if not MQTT_FILE.is_file() or not PROMETHEUS_DATA.is_dir():
-        raise RuntimeError("Required MQTT/Prometheus persistence path is missing")
-    return {name: info["Id"] for name, info in details.items()}
 
 
 def backup_postgresql(container, destination):
@@ -422,19 +453,37 @@ def backup_prometheus(container, destination):
 
 def prepare_exports(destination):
     metadata = {"sqlite": {}}
-    backup_postgresql(POSTGRES_CONTAINER, destination / "postgresql")
-    print("Prepared PostgreSQL dumps")
-    backup_mariadb(MARIADB_CONTAINER, destination / "mariadb")
-    print("Prepared MariaDB dumps and users")
+    if SQLITE_CONFIG is None:
+        backup_postgresql(POSTGRES_CONTAINER, destination / "postgresql")
+        print("Prepared PostgreSQL dumps")
+        backup_mariadb(MARIADB_CONTAINER, destination / "mariadb")
+        print("Prepared MariaDB dumps and users")
     for source, filename in SQLITE_DATABASES:
-        metadata["sqlite"][filename] = backup_sqlite(source, destination / "sqlite" / filename)
+        output = destination / "sqlite" / filename
+        metadata["sqlite"][filename] = backup_sqlite(source, output)
+        if SQLITE_CONFIG is not None:
+            with output.open("rb") as stream:
+                metadata["sqlite"][filename]["sha256"] = hashlib.file_digest(stream, "sha256").hexdigest()
     print("Prepared consistent SQLite databases")
-    metadata["redis"] = backup_redis(REDIS_CONTAINER, destination / "redis")
-    backup_zigbee(ZIGBEE_CONTAINER, destination / "zigbee")
-    metadata["mqtt"] = backup_mqtt(MQTT_CONTAINER, destination / "mqtt")
-    backup_prometheus(PROMETHEUS_CONTAINER, destination / "prometheus")
+    if SQLITE_CONFIG is None:
+        metadata["redis"] = backup_redis(REDIS_CONTAINER, destination / "redis")
+        backup_zigbee(ZIGBEE_CONTAINER, destination / "zigbee")
+        metadata["mqtt"] = backup_mqtt(MQTT_CONTAINER, destination / "mqtt")
+        backup_prometheus(PROMETHEUS_CONTAINER, destination / "prometheus")
+        print("Prepared Redis, Zigbee, MQTT and Prometheus snapshots")
+    else:
+        inventory = destination / "inventory"
+        private_directory(inventory)
+        for filename, arguments in SQLITE_CONFIG.get("inventory", {}).items():
+            if Path(filename).name != filename:
+                raise RuntimeError("Inventory filename must be a basename")
+            (inventory / filename).write_bytes(command(arguments))
+        # Exclude exactly the databases exported this run, not every *.db file.
+        # Required-source failures abort before restic can read stale exclusions.
+        exclusions = [str(source) + suffix for source, _ in SQLITE_DATABASES
+                      for suffix in ("", "-wal", "-shm", "-journal")]
+        (STATE / "sqlite-exclude.txt").write_text("\n".join(exclusions) + "\n")
     (destination / "restore-metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
-    print("Prepared Redis, Zigbee, MQTT and Prometheus snapshots")
 
 
 def publish(temporary):
@@ -463,15 +512,21 @@ def cleanup_exports():
 
 def main():
     os.umask(0o077)
-    if os.environ.get("PROFILE_NAME") != "nautilus" or os.environ.get("PROFILE_COMMAND") != "backup":
-        raise RuntimeError("Invoke only through resticprofile -n nautilus backup")
+    arguments = sys.argv[1:]
+    if arguments[:1] == ["--sqlite-config"]:
+        if len(arguments) < 2:
+            raise RuntimeError("--sqlite-config requires a JSON configuration path")
+        configure_sqlite_profile(arguments[1])
+        arguments = arguments[2:]
+    if os.environ.get("PROFILE_NAME") != PROFILE or os.environ.get("PROFILE_COMMAND") != "backup":
+        raise RuntimeError(f"Invoke only through resticprofile -n {PROFILE} backup")
     if STATE.parent.is_symlink() or STATE.is_symlink():
         raise RuntimeError("Unsafe backup state directory")
-    if sys.argv[1:] == ["--cleanup"]:
+    if arguments == ["--cleanup"]:
         cleanup_exports()
         return
-    if sys.argv[1:]:
-        raise RuntimeError("Only --cleanup is supported; use resticprofile")
+    if arguments:
+        raise RuntimeError("Only --sqlite-config PATH and --cleanup are supported; use resticprofile")
     # 1. Read-only prerequisite checks before requesting any live snapshots.
     container_ids = preflight()
     private_directory(STATE)
@@ -484,7 +539,7 @@ def main():
                 raise RuntimeError("A service container changed during preparation; retry")
         # 3. Publish only the complete set. Resticprofile uploads, then cleans up.
         publish(temporary)
-        print("Published complete Nautilus export set")
+        print(f"Published complete {PROFILE} export set")
     finally:
         if temporary.exists():
             shutil.rmtree(temporary)

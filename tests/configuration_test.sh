@@ -45,7 +45,11 @@ configuration_deploy_test() {
       if [ "$configuration_platform" = debian ]; then
         assert_contains "$configuration_tmp/home/.config/herdr/config.toml" 'delivery = "terminal"' || { rm -rf "$configuration_tmp"; return 1; }
         assert_contains "$configuration_tmp/home/.config/herdr/config.toml" 'agent_panel_scope = "all"' || { rm -rf "$configuration_tmp"; return 1; }
-        [ ! -e "$configuration_tmp/home/.config/resticprofile" ] || { rm -rf "$configuration_tmp"; fail 'Debian deployed Nautilus backup configuration'; return 1; }
+        assert_contains "$configuration_tmp/home/.config/resticprofile/profiles.yaml" 'bebop:' || { rm -rf "$configuration_tmp"; return 1; }
+        assert_contains "$configuration_tmp/home/.config/resticprofile/profiles.yaml" '--sqlite-config' || { rm -rf "$configuration_tmp"; return 1; }
+        [ -f "$configuration_tmp/home/.config/resticprofile/scripts/prepare_backup.py" ] || { rm -rf "$configuration_tmp"; fail 'shared backup helper missing'; return 1; }
+        [ ! -e "$configuration_tmp/home/.config/resticprofile/postgres.yaml" ] || { rm -rf "$configuration_tmp"; fail 'Debian deployed Nautilus PostgreSQL profile'; return 1; }
+        [ ! -e "$configuration_tmp/home/.config/resticprofile/restic-password" ] || { rm -rf "$configuration_tmp"; fail 'Debian deployed private backup credentials'; return 1; }
         [ ! -e "$configuration_tmp/home/.config/systemd" ] || { rm -rf "$configuration_tmp"; fail 'Debian took ownership of local agent units'; return 1; }
       fi
       for desktop_path in .config/hypr .config/uwsm .config/xfce4 .config/ghostty/config .config/Code; do

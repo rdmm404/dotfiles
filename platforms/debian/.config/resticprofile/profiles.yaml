@@ -1,0 +1,51 @@
+version: "1"
+# Private authenticated native backup-success POST; never commit this include.
+includes:
+  - /home/rdmm404/.config/resticprofile/gatus.yaml
+global:
+  initialize: false
+bebop:
+  repository: "rclone:nautilus-drive:backups/nautilus"
+  password-file: /home/rdmm404/.config/resticprofile/restic-password
+  env:
+    RCLONE_CONFIG: /home/rdmm404/.config/resticprofile/rclone.conf
+  lock: /var/lib/resticprofile/bebop/job.lock
+  retention:
+    after-backup: true
+    keep-within: 30d
+    host: bebop
+    tag:
+      - agents,home-and-host-config
+    path: true
+    prune: true
+    retry-lock: 30m
+  backup:
+    host: bebop
+    schedule: "*-*-* 05:00:00 America/Toronto"
+    schedule-permission: system
+    schedule-after-network-online: true
+    schedule-lock-wait: 30m
+    schedule-capture-environment: []
+    retry-lock: 30m
+    source:
+      - /home/rdmm404
+      - /etc
+      - /usr/local
+      - /var/spool/cron/crontabs
+      - /var/lib/systemd/linger
+      - /var/lib/resticprofile/bebop/exports
+    exclude-file:
+      - /home/rdmm404/.config/resticprofile/exclude.txt
+      - /var/lib/resticprofile/bebop/sqlite-exclude.txt
+    run-before:
+      - /usr/bin/python3 /home/rdmm404/.config/resticprofile/scripts/prepare_backup.py --sqlite-config /home/rdmm404/.config/resticprofile/sqlite.json
+    run-after:
+      - /usr/bin/python3 /home/rdmm404/.config/resticprofile/scripts/prepare_backup.py --sqlite-config /home/rdmm404/.config/resticprofile/sqlite.json --cleanup
+    no-error-on-warning: false
+    tag:
+      - agents
+      - home-and-host-config
+# Same encrypted repository, but retention cannot forget historical Bebop or
+# Nautilus snapshots. Root is required for /etc and system crontabs.
+# This host only uses stdlib SQLite exports: no Nautilus containers/uv/paho.
+# Scheduling is explicit, after a successful manual backup and restore test.

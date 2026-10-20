@@ -1,0 +1,31 @@
+{
+  "profile": "bebop",
+  "home": "/home/rdmm404",
+  "state": "/var/lib/resticprofile/bebop",
+  "required": [
+    ".nanobot/profiles/voltio/workspace/activities/activities.db",
+    ".codex/goals_1.sqlite",
+    ".codex/memories_1.sqlite",
+    ".codex/state_5.sqlite",
+    ".codex/logs_2.sqlite",
+    ".codex/queue_1.sqlite"
+  ],
+  "discover": [
+    ".codex/*.sqlite",
+    ".nanobot/profiles/voltio/**/*.db",
+    ".cloudcli/*.db",
+    ".hapi/*.db",
+    ".gemini/antigravity-cli/conversations/*.db"
+  ],
+  "inventory": {
+    "packages.tsv": ["dpkg-query", "--show", "--showformat=${binary:Package}\t${Version}\t${Architecture}\n"],
+    "manual-packages.txt": ["apt-mark", "showmanual"],
+    "system-units.txt": ["systemctl", "list-unit-files", "--no-pager"],
+    "disks.json": ["lsblk", "--json", "--fs"],
+    "docker-images.txt": ["docker", "image", "ls", "--digests", "--no-trunc"],
+    "docker-containers.txt": ["docker", "ps", "--all", "--no-trunc"],
+    "restic-version.txt": ["/usr/bin/restic", "version"],
+    "rclone-version.txt": ["/usr/bin/rclone", "version"],
+    "resticprofile-version.txt": ["/usr/local/bin/resticprofile", "version"]
+  }
+}
