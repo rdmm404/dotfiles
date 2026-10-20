@@ -10,6 +10,9 @@
       },
     ],
   },
+  "python.venvFolders": [
+    "/Users/robert.martinez/Library/Caches/pypoetry/virtualenvs",
+  ],
   "python.analysis.typeCheckingMode": "standard",
   "python.analysis.typeEvaluation.deprecateTypingAliases": true,
   "editor.formatOnSave": true,
