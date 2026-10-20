@@ -1,19 +1,23 @@
 # Herdr agent launcher
 
 Press **prefix+a** (`ctrl+space a`) in Herdr. A popup asks where, then which
-agent, then closes and focuses the new tab, where the agent starts up.
+agent, then closes and focuses the new tab. The agent command (and a clone,
+if any) is typed into that tab's shell, so you watch it start there.
 
 ## Picking where
 
 The first list holds open workspaces (marked `●`, the current one first and
-preselected), then zoxide folders that have no open workspace.
+preselected), then zoxide folders that have no open workspace, then GitHub
+repos you haven't cloned (marked `↓`).
 
 | Action | Result |
 | --- | --- |
 | Enter on a workspace | New agent tab in that workspace, in its folder |
 | Enter on a folder | New workspace named after the folder |
 | Type a path that exists, then Enter | Same as a folder row |
-| ctrl-w on a workspace or folder | Opens the branch picker for that repo (see below) |
+| Enter on a remote repo | Clones it into `~/Documents/work/repos/<repo>`, agent in it |
+| ctrl-w on any row | Opens the branch picker for that repo (see below) |
+| ctrl-r | Refreshes the remote repo list from GitHub |
 | Esc | Back to the previous step. On the first step, cancel |
 
 So `prefix+a`, Enter, Enter means "another agent tab right here, same agent as
@@ -42,15 +46,38 @@ reuses the checkout instead of failing. New checkouts land in
 config), and the workspace is named after the branch. It works from a linked
 worktree too: herdr wants the repo's main checkout, so the script passes that.
 
+### Remote repos
+
+The list comes from `gh repo list achievers-internal` (archived repos skipped),
+minus repos already cloned anywhere under `~/Documents/work` (matched by their
+`origin` URL). It's cached in `~/.cache/herdr-launch/repos` because `gh` takes
+5 to 15s; the first run builds it, after that only `ctrl-r` refreshes it.
+
+Picking one makes a workspace named after the repo in `~/Documents/work/repos`
+and types `git clone --filter=blob:none <ssh-url> <repo> && cd <repo> && <agent>`
+into it. If the clone fails, the error stays in the pane and no agent starts.
+
+With ctrl-w, the branch picker lists the repo's branches straight from GitHub
+(`git ls-remote`, no clone needed), default branch first:
+
+- Default branch: same as Enter, the agent runs in the clone.
+- Any other branch: after the clone, the pane runs `herdr-launch --after-clone`,
+  which makes the worktree workspace for that branch (as in the table above)
+  and starts the agent there. Then the clone's shell exits, which closes the
+  temporary clone workspace. The clone stays on disk as the repo's main checkout.
+
+Settings (env vars, read by the popup): `HERDR_LAUNCH_OWNERS` (space separated,
+default `achievers-internal`), `HERDR_LAUNCH_CLONE_DIR`, `HERDR_LAUNCH_LOCAL_ROOT`.
+
 ## Picking the agent
 
 The second list shows installed agents from `pi`, `claude`, `opencode`,
 `codex`, `gemini`, with the last one used first. The agent gets the name
-`<agent>-<n>` (the lowest free number), used as both the Herdr agent name and
-the tab label. Tab labels count as taken, so quick back-to-back launches don't
-collide.
+`<agent>-<n>` (the lowest free number) as its tab label. Tab labels count as
+taken, so quick back-to-back launches don't collide. The Herdr agent itself is
+unnamed (`herdr agent list` shows `null`); Herdr detects it on its own.
 
-If an agent fails to start, a Herdr notification shows the error.
+If the agent fails to start, the error is right there in its pane.
 
 ## Files and dependencies
 
@@ -58,17 +85,21 @@ If an agent fails to start, a Herdr notification shows the error.
 - `~/.config/herdr/config.toml`: the `prefix+a` popup binding and
   `worktrees.directory`
 - `${XDG_STATE_HOME:-~/.local/state}/herdr-launch/last-agent`: last agent used
+- `${XDG_CACHE_HOME:-~/.cache}/herdr-launch/repos`: remote repo list
 
-Requires fzf and jq. zoxide is optional; without it only open workspaces are
-listed. Edits to the script apply on the next launch; binding changes need
+Requires fzf and jq. Optional: zoxide (folder rows), gh and fd (remote repo
+rows, clones use SSH). Edits to the script apply on the next launch; binding changes need
 `herdr server reload-config` (or `prefix+q`).
 
 ## Notes
 
-- Closing a Herdr popup kills its process group. The script starts the agent in
-  a detached session (perl fork + `setsid`) and waits until that child has left
-  the group before exiting. A plain `setsid … &` loses that race and the agent
-  never starts.
+- Closing a Herdr popup kills its process group, so nothing can keep running
+  from the popup. That's why the agent is typed into the pane (`herdr pane run`)
+  instead of started with `herdr agent start` in the background. The shell
+  queues the text until it's ready, so a slow shell startup or a long clone
+  doesn't matter.
+- herdr won't `workspace close` a repo's main workspace while it has worktree
+  workspaces, which is why the clone workspace closes by exiting its shell.
 - Quitting the agent leaves its shell open; tabs and workspaces are not closed
   automatically.
 - Test against a named session (`herdr --session test ...`), not with

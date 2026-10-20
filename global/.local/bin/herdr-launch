@@ -4,29 +4,126 @@
 #   Enter on an open workspace  -> new agent tab in that workspace
 #   Enter on a folder           -> new agent tab in the workspace for that folder,
 #                                  or a new workspace if none is open
-#   ctrl-w on either            -> branch picker, then a worktree for that branch:
+#   Enter on a remote repo      -> clone it into $CLONE_DIR, agent in it
+#   ctrl-w on any of them       -> branch picker, then a worktree for that branch:
 #                                    checked out somewhere already -> reuse that checkout
 #                                    only on origin -> local tracking branch, new worktree
 #                                    new name       -> new branch from HEAD, new worktree
+#   ctrl-r                      -> refresh the remote repo list
 #   typing a path that exists   -> treated like a folder row
 #   esc in a later step         -> back to the previous step
 #
+# The agent (and any clone) is typed into the new pane, so the popup closes
+# right away and the work shows in the pane.
+#
 # Meant to run as a Herdr popup (see [[keys.command]] in herdr config.toml).
-# Needs: fzf, jq. Optional: zoxide (folder rows).
+# Needs: fzf, jq. Optional: zoxide (folder rows), gh + fd (remote repo rows).
 set -uo pipefail
 
 HERDR=${HERDR_BIN_PATH:-herdr}
 STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/herdr-launch
 LAST_AGENT_FILE=$STATE_DIR/last-agent
+CACHE_DIR=${XDG_CACHE_HOME:-$HOME/.cache}/herdr-launch
+REPOS_CACHE=$CACHE_DIR/repos
+# GitHub owners whose repos show up as remote rows (space separated).
+OWNERS=${HERDR_LAUNCH_OWNERS:-achievers-internal}
+# Where remote repos get cloned, and where to look for repos you already have.
+CLONE_DIR=${HERDR_LAUNCH_CLONE_DIR:-$HOME/Documents/work/repos}
+LOCAL_ROOT=${HERDR_LAUNCH_LOCAL_ROOT:-$HOME/Documents/work}
 KNOWN_AGENTS=(pi claude opencode codex gemini)
 TAB=$'\t'
 SELF=$(cd "$(dirname "$0")" && pwd)/$(basename "$0")
 
-# Internal: branch rows for the branch picker (also used by its ctrl-r reload).
-# Output: branch<TAB>display. Local branches first, then origin-only ones.
-if [ "${1:-}" = --list-branches ]; then
-  dir=$2
-  [ "${3:-}" = fetch ] && git -C "$dir" fetch -q --prune origin >/dev/null 2>&1
+fail() {
+  printf '\n\033[31merror:\033[0m %s\n' "$*" >&2
+  if [ -t 0 ]; then
+    printf '\npress any key to close' >&2
+    read -rsn1 _
+  fi
+  exit 1
+}
+
+pretty() { local t='~'; printf '%s' "${1/#$HOME/$t}"; }
+clone_url() { printf 'git@github.com:%s.git' "$1"; }
+
+# --- workspaces and picker rows ------------------------------------------------
+
+load_workspaces() {
+  local snapshot
+  snapshot=$("$HERDR" api snapshot 2>&1) || fail "herdr api snapshot failed: $snapshot"
+  snapshot=$(jq -c '.result.snapshot' <<<"$snapshot")
+  current_ws=${HERDR_ACTIVE_WORKSPACE_ID:-${HERDR_WORKSPACE_ID:-}}
+  [ -n "$current_ws" ] || current_ws=$(jq -r '.focused_workspace_id // ""' <<<"$snapshot")
+
+  # One line per open workspace: id<TAB>dir<TAB>label, current workspace first.
+  # A workspace's folder is its git checkout path, else its first pane's cwd.
+  workspaces=$(jq -r --arg cur "$current_ws" '
+    . as $s
+    | [ .workspaces[]
+        | . as $w
+        | { id: .workspace_id, label: .label, number: .number,
+            dir: (.worktree.checkout_path
+                  // ([$s.panes[] | select(.workspace_id == $w.workspace_id) | .cwd][0])
+                  // "") } ]
+    | sort_by(if .id == $cur then -1 else .number end)
+    | .[] | [.id, .dir, .label] | @tsv' <<<"$snapshot")
+}
+
+workspace_for_dir() {
+  awk -F'\t' -v d="$1" '$2 == d { print $1; exit }' <<<"$workspaces"
+}
+
+# Remote repo cache: owner/name per line, most recently pushed first, minus
+# archived repos and repos already cloned anywhere under $LOCAL_ROOT.
+refresh_repos() {
+  command -v gh >/dev/null || return 0
+  local local_repos owner
+  mkdir -p "$CACHE_DIR"
+  local_repos=$(fd -H -td -d4 '^\.git$' "$LOCAL_ROOT" -x git -C {//} remote get-url origin 2>/dev/null |
+    sed -E 's#^(git@[^:]+:|https://[^/]+/)##; s#\.git$##')
+  for owner in $OWNERS; do
+    gh repo list "$owner" --limit 2000 --no-archived --json nameWithOwner -q '.[].nameWithOwner'
+  done | awk 'NR == FNR { have[$0] = 1; next } !($0 in have)' \
+    <(printf '%s\n' "$local_repos") - >"$REPOS_CACHE.tmp" &&
+    mv "$REPOS_CACHE.tmp" "$REPOS_CACHE"
+}
+
+# fzf rows: kind<TAB>workspace-id<TAB>dir-or-repo<TAB>display
+build_rows() {
+  local id dir label
+  while IFS=$TAB read -r id dir label; do
+    [ -n "$id" ] || continue
+    printf 'ws\t%s\t%s\t\033[34m●\033[0m %s  \033[90m%s\033[0m\n' "$id" "$dir" "$label" "$(pretty "$dir")"
+  done <<<"$workspaces"
+
+  # Folders that already have a workspace are covered by the rows above.
+  if command -v zoxide >/dev/null; then
+    zoxide query -l 2>/dev/null | awk -F'\t' -v home="$HOME" '
+      NR == FNR { open[$2] = 1; next }
+      !($0 in open) {
+        shown = $0
+        if (index(shown, home) == 1) shown = "~" substr(shown, length(home) + 1)
+        printf "dir\t-\t%s\t  %s\n", $0, shown
+      }' <(printf '%s\n' "$workspaces") -
+  fi
+
+  # Remote repos last. Skip ones already cloned into $CLONE_DIR since the cache
+  # was built (e.g. by this launcher).
+  [ -f "$REPOS_CACHE" ] || return 0
+  local repo
+  while read -r repo; do
+    [ -e "$CLONE_DIR/${repo#*/}" ] && continue
+    printf 'remote\t-\t%s\t\033[90m↓ %s\033[0m\n' "$repo" "$repo"
+  done <"$REPOS_CACHE"
+}
+
+# --- branches ------------------------------------------------------------------
+
+# Branch rows for a local repo. Output: branch<TAB>display.
+# Local branches first (newest first), then origin-only ones.
+list_branches() {
+  local dir=$1 local_branches
+  [ "${2:-}" = fetch ] && git -C "$dir" fetch -q --prune origin >/dev/null 2>&1
   local_branches=$(git -C "$dir" for-each-ref --sort=-committerdate \
     --format='%(refname:short)%09%(worktreepath)' refs/heads)
   awk -F'\t' -v home="$HOME" '{
@@ -39,136 +136,22 @@ if [ "${1:-}" = --list-branches ]; then
     awk -v OFS='\t' 'NR == FNR { split($0, f, "\t"); have[f[1]] = 1; next }
       $0 != "HEAD" && !($0 in have) { print $0, $0 "  \033[90morigin\033[0m" }' \
       <(printf '%s\n' "$local_branches") -
-  exit 0
-fi
-
-fail() {
-  printf '\n\033[31merror:\033[0m %s\n' "$*" >&2
-  if [ -t 0 ]; then
-    printf '\npress any key to close' >&2
-    read -rsn1 _
-  fi
-  exit 1
 }
 
-pretty() { local t='~'; printf '%s' "${1/#$HOME/$t}"; }
-
-for bin in fzf jq; do
-  command -v "$bin" >/dev/null || fail "$bin is not installed"
-done
-
-snapshot=$("$HERDR" api snapshot 2>&1) || fail "herdr api snapshot failed: $snapshot"
-snapshot=$(jq -c '.result.snapshot' <<<"$snapshot")
-
-current_ws=${HERDR_ACTIVE_WORKSPACE_ID:-${HERDR_WORKSPACE_ID:-}}
-[ -n "$current_ws" ] || current_ws=$(jq -r '.focused_workspace_id // ""' <<<"$snapshot")
-
-# One line per open workspace: id<TAB>dir<TAB>label, current workspace first.
-# A workspace's folder is its git checkout path, else its first pane's cwd.
-workspaces=$(jq -r --arg cur "$current_ws" '
-  . as $s
-  | [ .workspaces[]
-      | . as $w
-      | { id: .workspace_id, label: .label, number: .number,
-          dir: (.worktree.checkout_path
-                // ([$s.panes[] | select(.workspace_id == $w.workspace_id) | .cwd][0])
-                // "") } ]
-  | sort_by(if .id == $cur then -1 else .number end)
-  | .[] | [.id, .dir, .label] | @tsv' <<<"$snapshot")
-
-workspace_for_dir() {
-  awk -F'\t' -v d="$1" '$2 == d { print $1; exit }' <<<"$workspaces"
+# Branch rows for a repo that isn't cloned yet, straight from GitHub.
+# Default branch first, marked.
+list_remote_branches() {
+  git ls-remote --symref "$(clone_url "$1")" HEAD 'refs/heads/*' 2>/dev/null | awk -F'\t' '
+    /^ref:/ { sub(/^ref: refs\/heads\//, "", $1); def = $1; next }
+    $2 ~ /^refs\/heads\// { b = substr($2, 12); if (b != def) rest[++n] = b }
+    END {
+      if (def != "") printf "%s\t%s  \033[90mdefault\033[0m\n", def, def
+      for (i = 1; i <= n; i++) printf "%s\t%s\n", rest[i], rest[i]
+    }'
 }
 
-# fzf rows: kind<TAB>workspace-id<TAB>dir<TAB>display
-build_rows() {
-  local id dir label
-  while IFS=$TAB read -r id dir label; do
-    [ -n "$id" ] || continue
-    printf 'ws\t%s\t%s\t\033[34m●\033[0m %s  \033[90m%s\033[0m\n' "$id" "$dir" "$label" "$(pretty "$dir")"
-  done <<<"$workspaces"
-
-  # Folders that already have a workspace are covered by the rows above.
-  command -v zoxide >/dev/null || return 0
-  zoxide query -l 2>/dev/null | awk -F'\t' -v home="$HOME" '
-    NR == FNR { open[$2] = 1; next }
-    !($0 in open) {
-      shown = $0
-      if (index(shown, home) == 1) shown = "~" substr(shown, length(home) + 1)
-      printf "dir\t-\t%s\t  %s\n", $0, shown
-    }' <(printf '%s\n' "$workspaces") -
-}
-
-# Steps: where -> (branch, with ctrl-w) -> agent. Esc goes back one step;
-# esc on the first step quits.
-last_agent=$(cat "$LAST_AGENT_FILE" 2>/dev/null || true)
-agents=()
-for a in "${KNOWN_AGENTS[@]}"; do
-  command -v "$a" >/dev/null || continue
-  if [ "$a" = "$last_agent" ]; then agents=("$a" ${agents[@]+"${agents[@]}"}); else agents+=("$a"); fi
-done
-[ "${#agents[@]}" -gt 0 ] || fail "no supported agent found on PATH (${KNOWN_AGENTS[*]})"
-
-query=""
-step=where
-while :; do
-  case $step in
-  where)
-    picked=$(build_rows | fzf --ansi --no-sort --delimiter="$TAB" --with-nth=4 \
-      --print-query --expect=ctrl-w --query="$query" \
-      --prompt='where> ' --border-label=' launch agent ' \
-      --header='enter: new agent tab  ·  ctrl-w: worktree  ·  esc: cancel')
-    [ $? -eq 130 ] && exit 0
-    query=$(sed -n 1p <<<"$picked")
-    key=$(sed -n 2p <<<"$picked")
-    row=$(sed -n 3p <<<"$picked")
-
-    if [ -n "$row" ]; then
-      IFS=$TAB read -r kind target_ws dir _ <<<"$row"
-      [ "$target_ws" = "-" ] && target_ws=""
-    else
-      # Nothing matched: accept a typed path.
-      dir=${query/#\~/$HOME}
-      [ -n "$dir" ] && [ -d "$dir" ] || continue
-      dir=$(cd "$dir" && pwd -P)
-      kind=dir
-      target_ws=""
-    fi
-    [ "$kind" = dir ] && [ -z "$target_ws" ] && target_ws=$(workspace_for_dir "$dir")
-    [ -n "$dir" ] && [ -d "$dir" ] || fail "folder does not exist: $dir"
-
-    branch=""
-    if [ "$key" = ctrl-w ]; then
-      git -C "$dir" rev-parse --show-toplevel >/dev/null 2>&1 || fail "not a git repo: $(pretty "$dir")"
-      step=branch
-    else
-      step=agent
-    fi
-    ;;
-  branch)
-    picked=$("$SELF" --list-branches "$dir" | fzf --ansi --no-sort --delimiter="$TAB" --with-nth=2 \
-      --print-query --expect=alt-enter \
-      --bind="ctrl-r:reload($(printf '%q --list-branches %q fetch' "$SELF" "$dir"))" \
-      --prompt='branch> ' --border-label=" worktree from $(pretty "$dir") " \
-      --header='enter: pick (or type a new name)  ·  alt-enter: use typed name  ·  ctrl-r: fetch  ·  esc: back')
-    if [ $? -eq 130 ]; then step=where; continue; fi
-    bquery=$(sed -n 1p <<<"$picked")
-    bkey=$(sed -n 2p <<<"$picked")
-    brow=$(sed -n 3p <<<"$picked")
-    if [ "$bkey" = alt-enter ] || [ -z "$brow" ]; then branch=$bquery; else branch=${brow%%"$TAB"*}; fi
-    [ -n "$branch" ] && step=agent
-    ;;
-  agent)
-    agent=$(printf '%s\n' "${agents[@]}" | fzf --no-sort --prompt='agent> ' \
-      --border-label=' launch agent ' --header='enter: start  ·  esc: back')
-    if [ -n "$agent" ]; then break; fi
-    if [ -n "$branch" ]; then step=branch; else step=where; fi
-    ;;
-  esac
-done
-
-# Turn a branch into an action. mode: tab | workspace | create | open
-if [ -n "$branch" ]; then
+# Sets: mode (tab|open|create), repo, wt, dir, target_ws for $branch in $dir.
+resolve_branch() {
   # herdr starts worktree actions from the repo's main checkout, not a linked one.
   repo=$(git -C "$dir" worktree list --porcelain | sed -n '1s/^worktree //p')
   git -C "$dir" check-ref-format --branch "$branch" >/dev/null 2>&1 || fail "not a valid branch name: $branch"
@@ -191,54 +174,180 @@ if [ -n "$branch" ]; then
     if [ -n "$target_ws" ]; then mode=tab; else mode=open; fi
     dir=$wt
   fi
+}
+
+# --- launching -----------------------------------------------------------------
+
+# Lowest free <agent>-<n>, counting tab labels and agent names.
+pick_name() {
+  local taken n=1
+  taken=$("$HERDR" api snapshot 2>/dev/null |
+    jq -r '.result.snapshot | (.agents[].name // empty), (.tabs[].label // empty)')
+  while grep -qx "$agent-$n" <<<"$taken"; do n=$((n + 1)); done
+  name=$agent-$n
+}
+
+# Makes the tab/workspace for $mode, labels and focuses it, then types $cmd
+# into its pane. The pane's shell runs it once it's up, so nothing here waits.
+launch() {
+  local out pane tab
+  case $mode in
+  create) out=$("$HERDR" worktree create --cwd "$repo" --branch "$branch" --no-focus 2>&1) || fail "$out" ;;
+  open) out=$("$HERDR" worktree open --cwd "$repo" --path "$wt" --no-focus 2>&1) || fail "$out" ;;
+  tab) out=$("$HERDR" tab create --workspace "$target_ws" --cwd "$dir" --label "$name" --no-focus 2>&1) || fail "$out" ;;
+  workspace) out=$("$HERDR" workspace create --cwd "$dir" ${label:+--label "$label"} --no-focus 2>&1) || fail "$out" ;;
+  esac
+  pane=$(jq -r '.result.root_pane.pane_id' <<<"$out")
+  tab=$(jq -r '.result.tab.tab_id' <<<"$out")
+  # tab create already set the label; new workspaces and worktrees need it.
+  [ "$mode" = tab ] || "$HERDR" tab rename "$tab" "$name" >/dev/null 2>&1
+  "$HERDR" tab focus "$tab" >/dev/null 2>&1
+  out=$("$HERDR" pane run "$pane" "$cmd" 2>&1) || fail "$out"
+}
+
+# --- internal modes --------------------------------------------------------------
+
+case ${1:-} in
+--list-branches) list_branches "$2" "${3:-}"; exit 0 ;;
+--list-remote-branches) list_remote_branches "$2"; exit 0 ;;
+--rows) load_workspaces; [ "${2:-}" = fetch ] && refresh_repos; build_rows; exit 0 ;;
+--after-clone)
+  # Runs inside the clone's pane, in the fresh clone: make the worktree for the
+  # picked branch and start the agent there. The caller then exits this shell,
+  # which closes the temporary clone workspace (herdr won't `workspace close` a
+  # repo's main workspace while it has worktree workspaces).
+  branch=$2 agent=$3 name=$4
+  dir=$PWD target_ws=""
+  load_workspaces
+  resolve_branch
+  cmd=$agent
+  launch
+  exit 0
+  ;;
+esac
+
+# --- main ------------------------------------------------------------------------
+
+for bin in fzf jq; do
+  command -v "$bin" >/dev/null || fail "$bin is not installed"
+done
+
+load_workspaces
+if [ ! -f "$REPOS_CACHE" ] && command -v gh >/dev/null; then
+  printf 'fetching the repo list for %s (first run only)...\n' "$OWNERS"
+  refresh_repos
+fi
+
+last_agent=$(cat "$LAST_AGENT_FILE" 2>/dev/null || true)
+agents=()
+for a in "${KNOWN_AGENTS[@]}"; do
+  command -v "$a" >/dev/null || continue
+  if [ "$a" = "$last_agent" ]; then agents=("$a" ${agents[@]+"${agents[@]}"}); else agents+=("$a"); fi
+done
+[ "${#agents[@]}" -gt 0 ] || fail "no supported agent found on PATH (${KNOWN_AGENTS[*]})"
+
+# Steps: where -> (branch, with ctrl-w) -> agent. Esc goes back one step;
+# esc on the first step quits.
+query=""
+step=where
+while :; do
+  case $step in
+  where)
+    picked=$(build_rows | fzf --ansi --no-sort --delimiter="$TAB" --with-nth=4 \
+      --print-query --expect=ctrl-w --query="$query" \
+      --bind="ctrl-r:reload($(printf '%q --rows fetch' "$SELF"))" \
+      --prompt='where> ' --border-label=' launch agent ' \
+      --header='enter: new agent  ·  ctrl-w: worktree  ·  ctrl-r: refresh repos  ·  esc: cancel')
+    [ $? -eq 130 ] && exit 0
+    query=$(sed -n 1p <<<"$picked")
+    key=$(sed -n 2p <<<"$picked")
+    row=$(sed -n 3p <<<"$picked")
+
+    if [ -n "$row" ]; then
+      IFS=$TAB read -r kind target_ws dir _ <<<"$row"
+      [ "$target_ws" = "-" ] && target_ws=""
+    else
+      # Nothing matched: accept a typed path.
+      dir=${query/#\~/$HOME}
+      [ -n "$dir" ] && [ -d "$dir" ] || continue
+      dir=$(cd "$dir" && pwd -P)
+      kind=dir
+      target_ws=""
+    fi
+    if [ "$kind" != remote ]; then
+      [ "$kind" = dir ] && [ -z "$target_ws" ] && target_ws=$(workspace_for_dir "$dir")
+      [ -n "$dir" ] && [ -d "$dir" ] || fail "folder does not exist: $dir"
+    fi
+
+    branch=""
+    if [ "$key" != ctrl-w ]; then
+      step=agent
+    elif [ "$kind" = remote ]; then
+      step=branch
+    else
+      git -C "$dir" rev-parse --show-toplevel >/dev/null 2>&1 || fail "not a git repo: $(pretty "$dir")"
+      step=branch
+    fi
+    ;;
+  branch)
+    if [ "$kind" = remote ]; then
+      list_cmd=$(printf '%q --list-remote-branches %q' "$SELF" "$dir")
+      title=" worktree from $dir (will clone) "
+    else
+      list_cmd=$(printf '%q --list-branches %q' "$SELF" "$dir")
+      title=" worktree from $(pretty "$dir") "
+    fi
+    picked=$(bash -c "$list_cmd" | fzf --ansi --no-sort --delimiter="$TAB" --with-nth=2 \
+      --print-query --expect=alt-enter \
+      --bind="ctrl-r:reload($list_cmd fetch)" \
+      --prompt='branch> ' --border-label="$title" \
+      --header='enter: pick (or type a new name)  ·  alt-enter: use typed name  ·  ctrl-r: fetch  ·  esc: back')
+    if [ $? -eq 130 ]; then step=where; continue; fi
+    bquery=$(sed -n 1p <<<"$picked")
+    bkey=$(sed -n 2p <<<"$picked")
+    brow=$(sed -n 3p <<<"$picked")
+    if [ "$bkey" = alt-enter ] || [ -z "$brow" ]; then branch=$bquery; else branch=${brow%%"$TAB"*}; fi
+    [ -n "$branch" ] && step=agent
+    ;;
+  agent)
+    agent=$(printf '%s\n' "${agents[@]}" | fzf --no-sort --prompt='agent> ' \
+      --border-label=' launch agent ' --header='enter: start  ·  esc: back')
+    if [ -n "$agent" ]; then break; fi
+    if [ -n "$branch" ]; then step=branch; else step=where; fi
+    ;;
+  esac
+done
+
+mkdir -p "$STATE_DIR" && printf '%s\n' "$agent" >"$LAST_AGENT_FILE"
+pick_name
+cmd=$agent
+label=""
+
+if [ "$kind" = remote ]; then
+  # Clone in a new workspace's pane, then carry on there: start the agent, or
+  # hand over to --after-clone to make the worktree for the picked branch.
+  name_only=${dir#*/}
+  [ -e "$CLONE_DIR/$name_only" ] && fail "$(pretty "$CLONE_DIR/$name_only") already exists"
+  mkdir -p "$CLONE_DIR" || fail "could not create $(pretty "$CLONE_DIR")"
+  cmd=$(printf 'git clone --filter=blob:none %q %q && cd %q' \
+    "$(clone_url "$dir")" "$name_only" "$name_only")
+  if [ -n "$branch" ]; then
+    default=$(git ls-remote --symref "$(clone_url "$dir")" HEAD 2>/dev/null |
+      sed -n 's#^ref: refs/heads/\(.*\)\tHEAD$#\1#p')
+  fi
+  if [ -n "$branch" ] && [ "$branch" != "${default:-}" ]; then
+    cmd+=$(printf ' && %q --after-clone %q %q %q && exit' "$SELF" "$branch" "$agent" "$name")
+  else
+    cmd+=" && $agent"
+  fi
+  mode=workspace dir=$CLONE_DIR label=$name_only target_ws=""
+elif [ -n "$branch" ]; then
+  resolve_branch
 elif [ -n "$target_ws" ]; then
   mode=tab
 else
   mode=workspace
 fi
 
-# Lowest free <agent>-<n>. Tab labels count too: an agent still starting up
-# from a previous launch has its tab label but no agent name yet.
-taken=$("$HERDR" api snapshot 2>/dev/null |
-  jq -r '.result.snapshot | (.agents[].name // empty), (.tabs[].label // empty)')
-n=1
-while grep -qx "$agent-$n" <<<"$taken"; do n=$((n + 1)); done
-name=$agent-$n
-
-case $mode in
-create) out=$("$HERDR" worktree create --cwd "$repo" --branch "$branch" --no-focus 2>&1) || fail "$out" ;;
-open) out=$("$HERDR" worktree open --cwd "$repo" --path "$wt" --no-focus 2>&1) || fail "$out" ;;
-tab) out=$("$HERDR" tab create --workspace "$target_ws" --cwd "$dir" --label "$name" --no-focus 2>&1) || fail "$out" ;;
-workspace) out=$("$HERDR" workspace create --cwd "$dir" --no-focus 2>&1) || fail "$out" ;;
-esac
-pane=$(jq -r '.result.root_pane.pane_id' <<<"$out")
-tab=$(jq -r '.result.tab.tab_id' <<<"$out")
-# tab create already set the label; new workspaces and worktrees need it.
-[ "$mode" = tab ] || "$HERDR" tab rename "$tab" "$name" >/dev/null 2>&1
-
-mkdir -p "$STATE_DIR" && printf '%s\n' "$agent" >"$LAST_AGENT_FILE"
-"$HERDR" tab focus "$tab" >/dev/null 2>&1
-
-# Start the agent detached so the popup closes right away and the startup
-# shows in the new pane. Failures surface as a Herdr notification.
-# Closing the popup kills its process group, so the child must be in its own
-# session before we exit: perl forks, the child calls setsid, and only then
-# does the parent return (a plain `setsid ... &` loses that race).
-export HERDR name agent pane
-perl -e '
-  use POSIX;
-  pipe(my $r, my $w) or die "pipe: $!";
-  my $pid = fork() // die "fork: $!";
-  if ($pid) { close $w; <$r>; exit 0 }
-  close $r; POSIX::setsid(); close $w;
-  open STDIN, "<", "/dev/null"; open STDOUT, ">", "/dev/null"; open STDERR, ">", "/dev/null";
-  exec @ARGV or die' bash -c '
-  # A fresh pane is not an "available shell" until its shell finishes starting
-  # up, and agent start fails fast in that case, so retry for up to ~15s.
-  for _ in $(seq 50); do
-    out=$("$HERDR" agent start "$name" --kind "$agent" --pane "$pane" 2>&1) && exit 0
-    sleep 0.3
-  done
-  "$HERDR" notification show "herdr-launch: $name did not start" --body "$out" --sound request
-'
+launch
 exit 0
