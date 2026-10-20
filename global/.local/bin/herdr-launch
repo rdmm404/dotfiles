@@ -77,14 +77,19 @@ workspace_for_dir() {
 # archived repos and repos already cloned anywhere under $LOCAL_ROOT.
 refresh_repos() {
   command -v gh >/dev/null || return 0
-  local local_repos owner
+  local local_repos owner remote="" out
+  # Fetch everything first: if any gh call fails, keep the old cache. Empty
+  # counts as failed too (gh exits 0 for an unknown owner when using --json).
+  for owner in $OWNERS; do
+    out=$(gh repo list "$owner" --limit 2000 --no-archived --json nameWithOwner -q '.[].nameWithOwner' 2>/dev/null)
+    [ -n "$out" ] || return 1
+    remote+=$out$'\n'
+  done
   mkdir -p "$CACHE_DIR"
   local_repos=$(fd -H -td -d4 '^\.git$' "$LOCAL_ROOT" -x git -C {//} remote get-url origin 2>/dev/null |
     sed -E 's#^(git@[^:]+:|https://[^/]+/)##; s#\.git$##')
-  for owner in $OWNERS; do
-    gh repo list "$owner" --limit 2000 --no-archived --json nameWithOwner -q '.[].nameWithOwner'
-  done | awk 'NR == FNR { have[$0] = 1; next } !($0 in have)' \
-    <(printf '%s\n' "$local_repos") - >"$REPOS_CACHE.tmp" &&
+  awk 'NR == FNR { have[$0] = 1; next } NF && !($0 in have)' \
+    <(printf '%s\n' "$local_repos") <(printf '%s' "$remote") >"$REPOS_CACHE.tmp" &&
     mv "$REPOS_CACHE.tmp" "$REPOS_CACHE"
 }
 
@@ -115,6 +120,21 @@ build_rows() {
     [ -e "$CLONE_DIR/${repo#*/}" ] && continue
     printf 'remote\t-\t%s\t\033[90m↓ %s\033[0m\n' "$repo" "$repo"
   done <"$REPOS_CACHE"
+}
+
+# Ranks rows in $1 (from build_rows) against query $2, best match first, but
+# local rows (workspaces, folders) always above remote repos, which would
+# otherwise win often: short dashed names score high and there are hundreds.
+# Ties keep build_rows order. Empty query: everything, unranked.
+rank_rows() {
+  local f=$1 q=${2:-} tier
+  [ -n "$q" ] || { cat "$f"; return; }
+  for tier in 0 1; do
+    awk -F'\t' -v OFS='\t' -v t="$tier" '($1 == "remote") == t {
+      gsub(/\033\[[0-9;]*m/, "", $4); print NR, $4 }' "$f" |
+      fzf --filter="$q" --delimiter="$TAB" --nth=2 --scheme=path --tiebreak=index | cut -f1
+  done | awk 'FILENAME == "-" { order[++n] = $1; next } { row[FNR] = $0 }
+    END { for (i = 1; i <= n; i++) print row[order[i]] }' - "$f"
 }
 
 # --- branches ------------------------------------------------------------------
@@ -225,6 +245,7 @@ case ${1:-} in
 --list-branches) list_branches "$2" "${3:-}"; exit 0 ;;
 --list-remote-branches) list_remote_branches "$2"; exit 0 ;;
 --rows) load_workspaces; [ "${2:-}" = fetch ] && refresh_repos; build_rows; exit 0 ;;
+--rank) rank_rows "$2" "${3:-}"; exit 0 ;;
 --after-clone)
   # Runs inside the clone's pane, in the fresh clone: make the worktree for the
   # picked branch and start the agent there. The caller then exits this shell,
@@ -262,14 +283,21 @@ done
 
 # Steps: where -> (branch, with ctrl-w) -> agent. Esc goes back one step;
 # esc on the first step quits.
+ROWS=$(mktemp "${TMPDIR:-/tmp}/herdr-launch.XXXXXX")
+trap 'rm -f "$ROWS"' EXIT
+build_rows >"$ROWS"
 query=""
 step=where
 while :; do
   case $step in
   where)
-    picked=$(build_rows | fzf --ansi --no-sort --delimiter="$TAB" --with-nth=4 \
+    # fzf can't rank in tiers, so it only filters (--no-sort) and --rank
+    # re-orders the list on every keystroke.
+    rank=$(printf '%q --rank %q' "$SELF" "$ROWS")
+    picked=$(rank_rows "$ROWS" "$query" | fzf --ansi --no-sort --delimiter="$TAB" --with-nth=4 \
       --print-query --expect=ctrl-w --query="$query" \
-      --bind="ctrl-r:reload($(printf '%q --rows fetch' "$SELF"))" \
+      --bind="change:reload($rank {q})" \
+      --bind="ctrl-r:reload($(printf '%q --rows fetch >%q' "$SELF" "$ROWS"); $rank {q})" \
       --prompt='where> ' --border-label=' launch agent ' \
       --header='enter: new agent  ·  ctrl-w: worktree  ·  ctrl-r: refresh repos  ·  esc: cancel')
     [ $? -eq 130 ] && exit 0
@@ -311,7 +339,7 @@ while :; do
       list_cmd=$(printf '%q --list-branches %q' "$SELF" "$dir")
       title=" worktree from $(pretty "$dir") "
     fi
-    picked=$(bash -c "$list_cmd" | fzf --ansi --no-sort --delimiter="$TAB" --with-nth=2 \
+    picked=$(bash -c "$list_cmd" | fzf --ansi --tiebreak=index --delimiter="$TAB" --with-nth=2 \
       --print-query --expect=alt-enter \
       --bind="ctrl-r:reload($list_cmd fetch)" \
       --prompt='branch> ' --border-label="$title" \
@@ -324,7 +352,7 @@ while :; do
     [ -n "$branch" ] && step=agent
     ;;
   agent)
-    agent=$(printf '%s\n' "${agents[@]}" | fzf --no-sort --prompt='agent> ' \
+    agent=$(printf '%s\n' "${agents[@]}" | fzf --tiebreak=index --prompt='agent> ' \
       --border-label=' launch agent ' --header='enter: start  ·  esc: back')
     if [ -n "$agent" ]; then break; fi
     if [ -n "$branch" ]; then step=branch; else step=where; fi

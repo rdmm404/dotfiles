@@ -10,6 +10,12 @@ The first list holds open workspaces (marked `●`, the current one first and
 preselected), then zoxide folders that have no open workspace, then GitHub
 repos you haven't cloned (marked `↓`).
 
+While you type, rows are ranked by match quality, with extra weight on the
+last folder name (fzf `--scheme=path`). Local rows always stay above remote
+repos. Without that, remote names win short queries a lot: they're made of
+short dashed words, and there are hundreds. Ties keep the order above.
+The branch and agent pickers rank the same way, minus the tiers.
+
 | Action | Result |
 | --- | --- |
 | Enter on a workspace | New agent tab in that workspace, in its folder |
@@ -51,7 +57,7 @@ worktree too: herdr wants the repo's main checkout, so the script passes that.
 The list comes from `gh repo list achievers-internal` (archived repos skipped),
 minus repos already cloned anywhere under `~/Documents/work` (matched by their
 `origin` URL). It's cached in `~/.cache/herdr-launch/repos` because `gh` takes
-5 to 15s; the first run builds it, after that only `ctrl-r` refreshes it.
+5 to 15s; the first run builds it, after that only `ctrl-r` refreshes it. A failed refresh keeps the old list.
 
 Picking one makes a workspace named after the repo in `~/Documents/work/repos`
 and types `git clone --filter=blob:none <ssh-url> <repo> && cd <repo> && <agent>`
