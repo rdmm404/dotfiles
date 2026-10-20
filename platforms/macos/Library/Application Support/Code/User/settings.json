@@ -116,10 +116,12 @@
   },
   "chat.viewSessions.orientation": "stacked",
   "security.promptForRemoteFileProtocolHandling": false,
+  "yaml.disableSchemaDetection": [],
   "[json]": {
     "editor.defaultFormatter": "vscode.json-language-features"
   },
   "[jsonc]": {
     "editor.defaultFormatter": "biomejs.biome"
   },
+  "editor.inlineSuggest.edits.showCollapsed": true,
 }
