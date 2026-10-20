@@ -139,8 +139,22 @@ list_branches() {
 }
 
 # Branch rows for a repo that isn't cloned yet, straight from GitHub.
-# Default branch first, marked.
+# Default branch first, marked, then the rest newest commit first.
+# Falls back to git ls-remote (name order) if the GitHub API call fails.
 list_remote_branches() {
+  local q rows def
+  q='query($o:String!,$n:String!,$endCursor:String){repository(owner:$o,name:$n){
+    defaultBranchRef{name} refs(refPrefix:"refs/heads/",first:100,after:$endCursor){
+      pageInfo{hasNextPage endCursor} nodes{name target{...on Commit{committedDate}}}}}}'
+  if rows=$(gh api graphql --paginate -f query="$q" -f o="${1%%/*}" -f n="${1#*/}" \
+    --jq '.data.repository | (.refs.nodes[] | "\(.target.committedDate)\t\(.name)"), "default\t\(.defaultBranchRef.name)"' 2>/dev/null); then
+    # The default branch line repeats on every page; print it once, first.
+    def=$(awk -F'\t' '$1 == "default" { print $2; exit }' <<<"$rows")
+    [ -n "$def" ] && printf '%s\t%s  \033[90mdefault\033[0m\n' "$def" "$def"
+    awk -F'\t' -v def="$def" '$1 != "default" && $2 != def' <<<"$rows" | LC_ALL=C sort -r |
+      awk -F'\t' -v OFS='\t' '{ print $2, $2 }'
+    return
+  fi
   git ls-remote --symref "$(clone_url "$1")" HEAD 'refs/heads/*' 2>/dev/null | awk -F'\t' '
     /^ref:/ { sub(/^ref: refs\/heads\//, "", $1); def = $1; next }
     $2 ~ /^refs\/heads\// { b = substr($2, 12); if (b != def) rest[++n] = b }

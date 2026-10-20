@@ -58,7 +58,8 @@ and types `git clone --filter=blob:none <ssh-url> <repo> && cd <repo> && <agent>
 into it. If the clone fails, the error stays in the pane and no agent starts.
 
 With ctrl-w, the branch picker lists the repo's branches straight from GitHub
-(`git ls-remote`, no clone needed), default branch first:
+(GitHub API, no clone needed): default branch first, then newest commit first.
+If the API call fails it falls back to `git ls-remote`, in name order:
 
 - Default branch: same as Enter, the agent runs in the clone.
 - Any other branch: after the clone, the pane runs `herdr-launch --after-clone`,
