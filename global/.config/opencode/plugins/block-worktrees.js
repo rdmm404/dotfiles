@@ -1,7 +1,7 @@
 // Blocks plain git worktree creation and points the agent at the using-worktrees skill.
 const MSG =
-  "Blocked: don't create git worktrees directly. Load the `using-worktrees` skill " +
-  "(skill tool, id `using-worktrees`) and follow it instead."
+  "Blocked: don't create git worktrees directly. Read ~/.agents/skills/using-worktrees/SKILL.md " +
+  "and follow it instead."
 
 const GIT_WT_ADD = /\bgit\b(?:\s+(?:-[Cc]\s+\S+|--?\S+))*\s+worktree\s+add\b/
 
