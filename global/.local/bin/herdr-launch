@@ -27,7 +27,7 @@ LAST_AGENT_FILE=$STATE_DIR/last-agent
 CACHE_DIR=${XDG_CACHE_HOME:-$HOME/.cache}/herdr-launch
 REPOS_CACHE=$CACHE_DIR/repos
 # GitHub owners whose repos show up as remote rows (space separated).
-OWNERS=${HERDR_LAUNCH_OWNERS:-achievers-internal}
+OWNERS=${HERDR_LAUNCH_OWNERS:-}
 # Where remote repos get cloned, and where to look for repos you already have.
 CLONE_DIR=${HERDR_LAUNCH_CLONE_DIR:-$HOME/Documents/work/repos}
 LOCAL_ROOT=${HERDR_LAUNCH_LOCAL_ROOT:-$HOME/Documents/work}

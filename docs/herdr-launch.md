@@ -59,7 +59,8 @@ worktree too: herdr wants the repo's main checkout, so the script passes that.
 
 ### Remote repos
 
-The list comes from `gh repo list achievers-internal` (archived repos skipped),
+The list comes from `gh repo list` for each owner in `HERDR_LAUNCH_OWNERS`
+(archived repos skipped),
 minus repos already cloned anywhere under `~/Documents/work` (matched by their
 `origin` URL). It's cached in `~/.cache/herdr-launch/repos` because `gh` takes
 5 to 15s; the first run builds it, after that only `ctrl-r` refreshes it. A failed refresh keeps the old list.
@@ -79,7 +80,8 @@ If the API call fails it falls back to `git ls-remote`, in name order:
   temporary clone workspace. The clone stays on disk as the repo's main checkout.
 
 Settings (env vars, read by the popup): `HERDR_LAUNCH_OWNERS` (space separated,
-default `achievers-internal`), `HERDR_LAUNCH_CLONE_DIR`, `HERDR_LAUNCH_LOCAL_ROOT`.
+no default; set globally to `rdmm404`), `HERDR_LAUNCH_CLONE_DIR`,
+`HERDR_LAUNCH_LOCAL_ROOT`.
 
 ## Picking the agent
 
