@@ -263,7 +263,12 @@ class Files:
             elif self.generated_link(target) and self.generated.modified(self.generated_link(target)):
                 action = "replace"
             elif not entry.is_dir and self.owned(target) and target.resolve() == entry.source.resolve():
-                if entry.overlay and (not entry.source.exists() or entry.source.read_bytes() != entry.content):
+                # Stow rejects absolute links even when they resolve to the
+                # right source. Reconcile ordinary links to its exact relative
+                # spelling, including links to tracked symlink adapters.
+                if not entry.overlay and os.readlink(target) != os.path.relpath(entry.source, target.parent):
+                    action = "relink"
+                elif entry.overlay and (not entry.source.exists() or entry.source.read_bytes() != entry.content):
                     action = "generate"
                 else:
                     unchanged += 1
@@ -349,33 +354,49 @@ class Files:
             if entry.overlay and (not entry.source.exists() or entry.source.read_bytes() != entry.content
                                   or relative in edited_outputs):
                 self.generated.write(relative, entry.content)
-        for change in changes:
-            if change.action in ("replace", "relink", "identical"):
-                remove(change.target)
-        completed = []
-        for layer in self.layers:
-            if not layer.exists():
-                continue
-            exclusions = ["--ignore=\\A" + re.escape(path.as_posix()) + "\\z"
-                          for path in sorted(self.excluded[layer])]
-            result = subprocess.run([stow, "--no-folding", *exclusions, "-d", str(layer.parent),
-                                     "-t", str(self.home), layer.name], cwd=self.root, capture_output=True, text=True)
-            if result.returncode:
-                if result.stderr:
-                    print(result.stderr.rstrip(), file=sys.stderr)
-                if completed:
-                    print(f"Completed layers: {', '.join(completed)}")
-                raise Error(f"Stow failed for {layer.relative_to(self.root)}. Successful work was kept; fix the error and rerun dot deploy.")
-            completed.append(str(layer.relative_to(self.root)))
-            if args.verbose and result.stderr:
-                print(result.stderr.rstrip())
-        for relative, entry in entries.items():
-            if entry.overlay:
-                target = self.home / relative
-                regular_parents(target, self.home)
+        removed_links = []
+        try:
+            for change in changes:
+                if change.action in ("replace", "relink", "identical"):
+                    if change.target.is_symlink():
+                        removed_links.append((change.target, os.readlink(change.target)))
+                    remove(change.target)
+            completed = []
+            for layer in self.layers:
+                if not layer.exists():
+                    continue
+                exclusions = ["--ignore=\\A" + re.escape(path.as_posix()) + "\\z"
+                              for path in sorted(self.excluded[layer])]
+                result = subprocess.run([stow, "--no-folding", *exclusions, "-d", str(layer.parent),
+                                         "-t", str(self.home), layer.name], cwd=self.root, capture_output=True, text=True)
+                if result.returncode:
+                    if result.stderr:
+                        print(result.stderr.rstrip(), file=sys.stderr)
+                    if completed:
+                        print(f"Completed layers: {', '.join(completed)}")
+                    raise Error(f"Stow failed for {layer.relative_to(self.root)}. Successful work was kept; fix the error and rerun dot deploy.")
+                completed.append(str(layer.relative_to(self.root)))
+                if args.verbose and result.stderr:
+                    print(result.stderr.rstrip())
+            for relative, entry in entries.items():
+                if entry.overlay:
+                    target = self.home / relative
+                    regular_parents(target, self.home)
+                    if not exists(target):
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        target.symlink_to(os.path.relpath(entry.source, target.parent))
+        except (Error, OSError, KeyboardInterrupt):
+            # Keep successful replacements, but don't leave pending links
+            # missing just because Stow failed before recreating them.
+            for target, destination in reversed(removed_links):
                 if not exists(target):
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    target.symlink_to(os.path.relpath(entry.source, target.parent))
+                    try:
+                        regular_parents(target, self.home)
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        target.symlink_to(destination)
+                    except (Error, OSError) as error:
+                        print(f"Could not restore pending link {self.display(target)}: {error}", file=sys.stderr)
+            raise
         self.show_changes(changes, False, args.verbose)
         count = sum(not change.entry.is_dir for change in changes)
         print(f"{count} link(s) updated, {unchanged} unchanged ({self.platform}).")

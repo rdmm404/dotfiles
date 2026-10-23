@@ -69,6 +69,43 @@ class FilesTests(DotFixture):
         self.assertEqual(target.lstat().st_ino, identity)
         self.assertFalse((self.home / ".local/state/dot").exists())
 
+    def test_absolute_owned_links_are_normalized_without_backups(self):
+        links = []
+        for layer, relative in (("global", ".config/app/settings"),
+                                ("platforms/omarchy", ".local/bin/calculator")):
+            source = self.write(self.root / layer / relative)
+            target = self.home / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.symlink_to(source)
+            links.append((target, source))
+        preview = self.cli("deploy", "--dry-run").stdout
+        self.assertEqual(preview.count("Would relink"), 2)
+        for target, source in links:
+            self.assertEqual(os.readlink(target), str(source))
+        self.cli("deploy")
+        for target, source in links:
+            self.assert_link(target, source)
+            self.assertEqual(os.readlink(target), os.path.relpath(source, target.parent))
+        identities = [target.lstat().st_ino for target, _ in links]
+        self.assertIn("Already up to date", self.cli("deploy").stdout)
+        self.assertEqual([target.lstat().st_ino for target, _ in links], identities)
+        self.assertFalse((self.home / ".local/state/dot").exists())
+
+    def test_absolute_link_does_not_block_stale_or_missing_links(self):
+        calculator = self.write(self.root / "platforms/omarchy/.calculator")
+        (self.home / ".calculator").symlink_to(calculator)
+        monitor = self.write(self.root / "platforms/omarchy/.config/hypr/monitors.lua")
+        target = self.home / ".config/hypr/monitors.lua"
+        target.parent.mkdir(parents=True)
+        target.symlink_to(os.path.relpath(self.root / "removed/monitors.lua", target.parent))
+        missing = self.write(self.root / "platforms/omarchy/.missing")
+        self.cli("deploy")
+        self.assert_link(target, monitor)
+        self.assert_link(self.home / ".missing", missing)
+        self.assert_link(self.home / ".calculator", calculator)
+        self.assertFalse(Path(os.readlink(self.home / ".calculator")).is_absolute())
+        self.assertFalse((self.home / ".local/state/dot").exists())
+
     def test_ubuntu_deployment_preserves_desktop_and_backs_up_herdr(self):
         self.env["DOT_PLATFORM"] = "ubuntu"
         source = self.write(self.root / "platforms/ubuntu/.config/herdr/config.toml", "new config\n")
@@ -216,6 +253,40 @@ class FilesTests(DotFixture):
         self.env["STOW_COMMAND"] = STOW
         self.cli("deploy")
         self.assertTrue((self.home / ".two").is_symlink())
+
+    def test_failed_layer_restores_pending_links_but_keeps_completed_work(self):
+        first = self.write(self.root / "global/.one")
+        (self.home / ".one").symlink_to(self.root / "removed/one")
+        source = self.write(self.root / "platforms/omarchy/.config/hypr/monitors.lua")
+        target = self.home / ".config/hypr/monitors.lua"
+        target.parent.mkdir(parents=True)
+        original = os.path.relpath(self.root / "removed/monitors.lua", target.parent)
+        target.symlink_to(original)
+        self.write(self.root / "platforms/omarchy/.missing")
+        fake = self.write(self.base / "stow", '#!/bin/sh\ncase "$*" in *" omarchy") exit 1;; esac\nexec "$REAL_STOW" "$@"\n')
+        fake.chmod(0o755)
+        self.env.update(STOW_COMMAND=str(fake), REAL_STOW=STOW)
+        self.cli("deploy", ok=False)
+        self.assert_link(self.home / ".one", first)
+        self.assertTrue(target.is_symlink())
+        self.assertEqual(os.readlink(target), original)
+        self.assertFalse((self.home / ".missing").exists())
+        self.env["STOW_COMMAND"] = STOW
+        self.cli("deploy")
+        self.assert_link(target, source)
+        self.assertTrue((self.home / ".missing").is_symlink())
+
+    def test_stow_launch_failure_restores_pending_links(self):
+        self.write(self.root / "global/.app")
+        target = self.home / ".app"
+        original = str(self.root / "removed/app")
+        target.symlink_to(original)
+        fake = self.write(self.base / "stow", "not an executable format\n")
+        fake.chmod(0o755)
+        self.env["STOW_COMMAND"] = str(fake)
+        self.cli("deploy", ok=False)
+        self.assertTrue(target.is_symlink())
+        self.assertEqual(os.readlink(target), original)
 
     def test_add_file_requires_layer_and_preserves_mode(self):
         target = self.write(self.home / ".config/tool/settings file", "personal")

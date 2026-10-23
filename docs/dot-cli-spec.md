@@ -86,8 +86,14 @@ prompt is answered yes. Edited generated output always requires explicit
 A regular target file with identical contents **and permission mode** is
 safe to deduplicate: it is replaced by the repository-owned link without a
 backup. Existing links owned by this repository are reconciled or relinked to
-the current source. Unrelated links are conflicts. Backups made for
-replacement are stored under `~/.local/state/dot/backups/<ID>/`.
+the current source. Ordinary links use Stow's relative-path format; absolute
+repo links are automatically relinked, and `--dry-run` previews this repair.
+Unrelated links are conflicts. Backups made for replacement are stored under
+`~/.local/state/dot/backups/<ID>/`.
+
+If deployment fails after removing links for replacement, any still-missing
+links are restored to their previous destinations. Successfully deployed paths
+are left intact; this is not a rollback of completed work.
 
 A platform `NAME.merge.toml` merges global `NAME.toml` and deploys at `NAME.toml`.
 Tables merge recursively; all other values (including arrays and type changes)
