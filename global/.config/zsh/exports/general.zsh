@@ -1,6 +1,7 @@
 export EDITOR='nano'
 export XDG_CONFIG_HOME="$HOME/.config"
 export HERDR_LAUNCH_OWNERS=rdmm404
+export HERDR_LAUNCH_LOCAL_ROOT="$HOME/Projects"
 
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/.cargo/bin:$PATH"
