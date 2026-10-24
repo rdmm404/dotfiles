@@ -12,7 +12,9 @@ replaces herdr's default `prefix+s` (settings), which moved to `prefix+shift+s`.
 ## Picking where
 
 The first list holds open workspaces (marked `●`, the current one first and
-preselected), then zoxide folders that have no open workspace, then GitHub
+preselected), then zoxide folders that have no open workspace, then folders
+found by scanning `~` with `fd` (hidden ones like `~/.config` included; the
+picker shows a yellow notice if `fd` is missing), then GitHub
 repos you haven't cloned (marked `↓`).
 
 While you type, rows are ranked by match quality, with extra weight on the
@@ -81,7 +83,8 @@ If the API call fails it falls back to `git ls-remote`, in name order:
 
 Settings (env vars, read by the popup): `HERDR_LAUNCH_OWNERS` (space separated,
 no default; set globally to `rdmm404`), `HERDR_LAUNCH_CLONE_DIR`,
-`HERDR_LAUNCH_LOCAL_ROOT`.
+`HERDR_LAUNCH_LOCAL_ROOT`, `HERDR_LAUNCH_HOME_DEPTH` (how deep the `~` scan
+goes, default 3).
 
 ## Picking the agent
 
@@ -101,7 +104,7 @@ If the agent fails to start, the error is right there in its pane.
 - `${XDG_STATE_HOME:-~/.local/state}/herdr-launch/last-agent`: last agent used
 - `${XDG_CACHE_HOME:-~/.cache}/herdr-launch/repos`: remote repo list
 
-Requires fzf and jq. Optional: zoxide (folder rows), gh and fd (remote repo
+Requires fzf and jq. Optional: zoxide (folder rows), fd (`~` scan), gh (remote repo
 rows, clones use SSH). Edits to the script apply on the next launch; binding changes need
 `herdr server reload-config` (or `prefix+q`).
 

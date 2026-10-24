@@ -31,6 +31,7 @@ OWNERS=${HERDR_LAUNCH_OWNERS:-}
 # Where remote repos get cloned, and where to look for repos you already have.
 CLONE_DIR=${HERDR_LAUNCH_CLONE_DIR:-$HOME/Documents/work/repos}
 LOCAL_ROOT=${HERDR_LAUNCH_LOCAL_ROOT:-$HOME/Documents/work}
+HOME_SCAN_DEPTH=${HERDR_LAUNCH_HOME_DEPTH:-3}
 KNOWN_AGENTS=(pi claude opencode codex gemini)
 TAB=$'\t'
 SELF=$(cd "$(dirname "$0")" && pwd)/$(basename "$0")
@@ -103,15 +104,21 @@ build_rows() {
   done <<<"$workspaces"
 
   # Folders that already have a workspace are covered by the rows above.
-  if command -v zoxide >/dev/null; then
-    zoxide query -l 2>/dev/null | awk -F'\t' -v home="$HOME" '
-      NR == FNR { open[$2] = 1; next }
-      !($0 in open) {
-        shown = $0
-        if (index(shown, home) == 1) shown = "~" substr(shown, length(home) + 1)
-        printf "dir\t-\t%s\t  %s\n", $0, shown
-      }' <(printf '%s\n' "$workspaces") -
-  fi
+  # zoxide first (ranked by use), then a shallow scan of $HOME as a fallback for
+  # folders zoxide hasn't seen, hidden ones like ~/.config included.
+  {
+    command -v zoxide >/dev/null && zoxide query -l 2>/dev/null
+    command -v fd >/dev/null && fd -H -td -d"$HOME_SCAN_DEPTH" -E .git -E node_modules -E Library \
+      -E .cache -E .Trash -E .npm -E .cargo -E .rustup -E .local --absolute-path . "$HOME" 2>/dev/null |
+      sed 's#/$##'
+  } | awk -F'\t' -v home="$HOME" '
+    NR == FNR { seen[$2] = 1; next }
+    !($0 in seen) {
+      seen[$0] = 1
+      shown = $0
+      if (index(shown, home) == 1) shown = "~" substr(shown, length(home) + 1)
+      printf "dir\t-\t%s\t  %s\n", $0, shown
+    }' <(printf '%s\n' "$workspaces") -
 
   # Remote repos last. Skip ones already cloned into $CLONE_DIR since the cache
   # was built (e.g. by this launcher).
@@ -297,6 +304,8 @@ fi
 ROWS=$(mktemp "${TMPDIR:-/tmp}/herdr-launch.XXXXXX")
 trap 'rm -f "$ROWS"' EXIT
 build_rows >"$ROWS"
+notice=""
+command -v fd >/dev/null || notice=$'\n\033[33mfd not installed: no ~ folder scan\033[0m'
 query=""
 step=where
 while :; do
@@ -310,7 +319,7 @@ while :; do
       --bind="change:reload($rank {q})" \
       --bind="ctrl-r:reload($(printf '%q --rows fetch >%q' "$SELF" "$ROWS"); $rank {q})" \
       --prompt='where> ' --border-label="$title" \
-      --header="enter: $what  ·  ctrl-w: worktree  ·  ctrl-r: refresh repos  ·  esc: cancel")
+      --header="enter: $what  ·  ctrl-w: worktree  ·  ctrl-r: refresh repos  ·  esc: cancel$notice")
     [ $? -eq 130 ] && exit 0
     query=$(sed -n 1p <<<"$picked")
     key=$(sed -n 2p <<<"$picked")
