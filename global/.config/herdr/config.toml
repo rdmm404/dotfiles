@@ -127,6 +127,9 @@ window_title = "{hostname}: {workspace}"
 
 show_agent_labels_on_pane_borders = true
 
+# Only caps mouse drag-resizing; the dragged width is remembered
+sidebar_max_width = 60
+
 # mobile stuff
 mobile_width_threshold = 80
 status_indicators = "symbols"
