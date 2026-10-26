@@ -1,0 +1,1 @@
+export HERDR_LAUNCH_LOCAL_ROOT="$HOME/Projects"
