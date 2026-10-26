@@ -220,30 +220,19 @@ resolve_branch() {
 
 # --- launching -----------------------------------------------------------------
 
-# Lowest free <agent>-<n>, counting tab labels and agent names.
-pick_name() {
-  local taken n=1
-  taken=$("$HERDR" api snapshot 2>/dev/null |
-    jq -r '.result.snapshot | (.agents[].name // empty), (.tabs[].label // empty)')
-  while grep -qx "$agent-$n" <<<"$taken"; do n=$((n + 1)); done
-  name=$agent-$n
-}
-
-# Makes the tab/workspace for $mode, labels and focuses it, then types $cmd
-# into its pane. The pane's shell runs it once it's up, so nothing here waits.
+# Makes the tab/workspace for $mode and focuses it, then types $cmd into its
+# pane. The pane's shell runs it once it's up, so nothing here waits.
+# Tabs keep herdr's numeric label so the goto navigator shows the session title.
 launch() {
   local out pane tab
   case $mode in
   create) out=$("$HERDR" worktree create --cwd "$repo" --branch "$branch" --no-focus 2>&1) || fail "$out" ;;
   open) out=$("$HERDR" worktree open --cwd "$repo" --path "$wt" --no-focus 2>&1) || fail "$out" ;;
-  tab) out=$("$HERDR" tab create --workspace "$target_ws" --cwd "$dir" ${name:+--label "$name"} --no-focus 2>&1) || fail "$out" ;;
+  tab) out=$("$HERDR" tab create --workspace "$target_ws" --cwd "$dir" --no-focus 2>&1) || fail "$out" ;;
   workspace) out=$("$HERDR" workspace create --cwd "$dir" ${label:+--label "$label"} --no-focus 2>&1) || fail "$out" ;;
   esac
   pane=$(jq -r '.result.root_pane.pane_id' <<<"$out")
   tab=$(jq -r '.result.tab.tab_id' <<<"$out")
-  # tab create already set the label; new workspaces and worktrees need it.
-  # Shells have no name and keep herdr's default label.
-  [ "$mode" = tab ] || [ -z "$name" ] || "$HERDR" tab rename "$tab" "$name" >/dev/null 2>&1
   "$HERDR" tab focus "$tab" >/dev/null 2>&1
   [ -z "$cmd" ] || out=$("$HERDR" pane run "$pane" "$cmd" 2>&1) || fail "$out"
 }
@@ -260,7 +249,7 @@ case ${1:-} in
   # picked branch and start the agent there (empty agent = plain shell, for
   # --shell). The caller then exits this shell, which closes the temporary clone workspace (herdr won't `workspace close` a
   # repo's main workspace while it has worktree workspaces).
-  branch=$2 agent=$3 name=$4
+  branch=$2 agent=$3
   dir=$PWD target_ws=""
   load_workspaces
   resolve_branch
@@ -381,10 +370,8 @@ while :; do
   esac
 done
 
-name=""
 if [ -n "$agent" ]; then
   mkdir -p "$STATE_DIR" && printf '%s\n' "$agent" >"$LAST_AGENT_FILE"
-  pick_name
 fi
 cmd=$agent
 label=""
@@ -402,7 +389,7 @@ if [ "$kind" = remote ]; then
       sed -n 's#^ref: refs/heads/\(.*\)\tHEAD$#\1#p')
   fi
   if [ -n "$branch" ] && [ "$branch" != "${default:-}" ]; then
-    cmd+=$(printf ' && %q --after-clone %q %q %q && exit' "$SELF" "$branch" "$agent" "$name")
+    cmd+=$(printf ' && %q --after-clone %q %q && exit' "$SELF" "$branch" "$agent")
   elif [ -n "$agent" ]; then
     cmd+=" && $agent"
   fi

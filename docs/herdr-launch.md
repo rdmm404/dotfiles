@@ -89,10 +89,10 @@ goes, default 3).
 ## Picking the agent
 
 The second list shows installed agents from `pi`, `claude`, `opencode`,
-`codex`, `gemini`, with the last one used first. The agent gets the name
-`<agent>-<n>` (the lowest free number) as its tab label. Tab labels count as
-taken, so quick back-to-back launches don't collide. The Herdr agent itself is
-unnamed (`herdr agent list` shows `null`); Herdr detects it on its own.
+`codex`, `gemini`, with the last one used first. The tab keeps Herdr's default
+numeric label, so the goto navigator (`prefix+g`) shows the session title the
+agent reports. The Herdr agent itself is unnamed (`herdr agent list` shows
+`null`); Herdr detects it on its own.
 
 If the agent fails to start, the error is right there in its pane.
 
