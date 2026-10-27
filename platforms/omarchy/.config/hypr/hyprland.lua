@@ -76,7 +76,7 @@ o.window("^.+-web\\.whatsapp\\.com__.*$", { workspace = "6" })
 
 
 o.window("chromium-browser", {
-    focus_on_activate = false,
+    focus_on_activate = false
 })
 
 -- Added by hyprmoncfg: its generated monitor rules load last, so nothing before this can override the applied layout.
