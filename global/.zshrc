@@ -57,3 +57,7 @@ if [ -n "$DOT_ZSH_SYNTAX_FILE" ]; then
 elif [ "$DOT_ZSH_FOUNDATION" = zap ] && command -v plug >/dev/null 2>&1; then
   plug 'zsh-users/zsh-syntax-highlighting'
 fi
+
+
+# Added by Antigravity CLI installer
+export PATH="/home/rdmm404/.local/bin:$PATH"
