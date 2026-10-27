@@ -109,17 +109,48 @@ agent reports. The Herdr agent itself is unnamed (`herdr agent list` shows
 
 If the agent fails to start, the error is right there in its pane.
 
+## Session titles
+
+Keep Herdr's built-in OpenCode and Pi integrations installed: they own agent
+identity, state and resume commands. The separate dotfiles title plugins only
+report presentation metadata (`title`, `$title`, `$kind`). OpenCode's plugin runs
+in the V2 TUI, so a shared server cannot attribute another client's title to your
+pane; it reports the selected root session's existing auto-generated/manual title.
+
+Pi generates a title once on the first agent turn of an unnamed session, without
+blocking the turn or changing its main model. Manual names (including one set
+while generation is running) are preserved. The setting is
+`~/.pi/agent/extensions/herdr-title/settings.json` (distributed by Pi-sync):
+
+```json
+{"provider":"openai-codex","model":"gpt-6-luna","reasoningEffort":"none"}
+```
+
+This uses Pi's existing authentication. There is no model discovery or fallback;
+a missing model/authentication or failed request produces a warning and leaves
+the session unnamed. It sends the first prompt (up to 6,000 characters) to the
+configured title model. Publish settings changes with `/pisync push`.
+Both plugins refresh metadata while running and follow session/name changes.
+Remote agents show their machine in the sidebar's second row; `Local` is hidden.
+
 ## Files and dependencies
 
 - `~/.local/bin/herdr-launch`: the script (from `global/`)
 - `~/.config/herdr/config.toml`: the `prefix+a` and `prefix+s` popup bindings and
   `worktrees.directory`
+- `~/.config/herdr/title-report.mjs`: shared presentation-only socket reporter
+- `~/.pi/agent/extensions/herdr-title/`: Pi-sync-managed title plugin and model settings
+- `~/.config/opencode/plugins/herdr-title/`: auto-discovered OpenCode V2 title plugin
 - `${XDG_STATE_HOME:-~/.local/state}/herdr-launch/last-agent`: last agent used
 - `${XDG_CACHE_HOME:-~/.cache}/herdr-launch/repos`: remote repo list
 
 Requires fzf and jq. Optional: zoxide (folder rows), fd (`~` scan), gh (remote repo
 rows, clones use SSH). Edits to the script apply on the next launch; binding changes need
 `herdr server reload-config` (or `prefix+q`).
+Run `./dot deploy` after pulling to link dotfiles-managed plugins and regenerate
+merged Herdr configuration. Pi's title extension is distributed separately by
+Pi-sync through the `harness` repository, not by dotfiles. Reload agent plugins
+(`/reload`) in existing sessions after updating them.
 
 ## Notes
 
