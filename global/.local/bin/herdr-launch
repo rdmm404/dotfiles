@@ -32,7 +32,7 @@ OWNERS=${HERDR_LAUNCH_OWNERS:-}
 CLONE_DIR=${HERDR_LAUNCH_CLONE_DIR:-$HOME/Documents/work/repos}
 LOCAL_ROOT=${HERDR_LAUNCH_LOCAL_ROOT:-$HOME/Documents/work}
 HOME_SCAN_DEPTH=${HERDR_LAUNCH_HOME_DEPTH:-3}
-KNOWN_AGENTS=(pi claude opencode codex gemini)
+KNOWN_AGENTS=(pi claude opencode codex gemini agy)
 TAB=$'\t'
 SELF=$(cd "$(dirname "$0")" && pwd)/$(basename "$0")
 
@@ -261,12 +261,41 @@ esac
 
 # --- main ------------------------------------------------------------------------
 
+# Keep the complete picker on the chosen host: its PATH, zoxide database, Git
+# credentials, caches and paths must never be replaced with the caller's values.
+# Internal fzf helpers above deliberately bypass machine selection.
+pick_machine() {
+  [ "${HERDR_LAUNCH_SKIP_MACHINE:-}" = 1 ] && return
+  local machines picked id target session remote_cmd
+  machines=$("$HERDR" machine list --json 2>&1) || fail "cannot list saved Herdr machines: $machines"
+  machines=$(jq -r '.[] | select(.enabled) | [.id, .label, .target, .session] | @tsv' <<<"$machines") || fail "invalid Herdr machine list"
+  [ -n "$machines" ] || return
+  picked=$({ printf 'local\tThis machine\t-\t-\n'; printf '%s\n' "$machines"; } |
+    fzf --delimiter="$TAB" --with-nth=2 --no-sort --prompt='machine> ' \
+      --border-label=' launch on ' --header='enter: select machine  ·  esc: cancel') || exit 0
+  IFS=$TAB read -r id _ target session <<<"$picked"
+  [ "$id" != local ] || return
+  # Quote for the remote login shell (not necessarily Bash). Do not pass local
+  # HERDR_SOCKET_PATH / pane IDs; HERDR_SESSION selects the saved remote session.
+  remote_cmd=$(printf '%s' "$session" | sed "s/'/'\\\\''/g")
+  remote_cmd="env -u HERDR_SOCKET_PATH -u HERDR_WORKSPACE_ID -u HERDR_ACTIVE_WORKSPACE_ID -u HERDR_PANE_ID HERDR_SESSION='$remote_cmd' HERDR_ENV=1 HERDR_LAUNCH_SKIP_MACHINE=1"
+  remote_cmd+=' "$SHELL" -lic '\''exec herdr-launch'
+  [ "${1:-}" != --shell ] || remote_cmd+=' --shell'
+  remote_cmd+="'"
+  ssh -t -- "$target" "$remote_cmd"
+  local status=$?
+  [ "$status" -eq 0 ] || fail "remote launcher failed on $target; check SSH and deploy herdr-launch there"
+  exit 0
+}
+
 shell_mode=""
 [ "${1:-}" = --shell ] && shell_mode=1
 
 for bin in fzf jq; do
   command -v "$bin" >/dev/null || fail "$bin is not installed"
 done
+
+pick_machine "${1:-}"
 
 load_workspaces
 if [ ! -f "$REPOS_CACHE" ] && command -v gh >/dev/null; then

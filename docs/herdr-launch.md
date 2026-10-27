@@ -11,6 +11,19 @@ replaces herdr's default `prefix+s` (settings), which moved to `prefix+shift+s`.
 
 ## Picking where
 
+If Herdr has enabled saved machines, a **machine** picker comes first. Choose
+**This machine** for the existing local flow, or a saved SSH machine to run the
+whole launcher there. With no saved machines, this step is skipped.
+
+Remote selection runs `herdr-launch` over SSH in an interactive login shell,
+targeting the profile's saved Herdr session. It uses that host's zoxide history,
+fzf, folders, Git worktrees, GitHub credentials/cache, installed agents and last
+agent setting. Deploy these dotfiles on each host and install the same launcher
+dependencies there. Herdr's remote server must already be running. SSH failures
+are shown rather than silently launching locally. This does not install anything
+remotely or change machine profiles. The remote tab is focused on its server;
+you may still need to select that machine in the local Herdr sidebar to view it.
+
 The first list holds open workspaces (marked `●`, the current one first and
 preselected), then zoxide folders that have no open workspace, then folders
 found by scanning `~` with `fd` (hidden ones like `~/.config` included; the
@@ -89,7 +102,7 @@ goes, default 3).
 ## Picking the agent
 
 The second list shows installed agents from `pi`, `claude`, `opencode`,
-`codex`, `gemini`, with the last one used first. The tab keeps Herdr's default
+`codex`, `gemini`, `agy`, with the last one used first. The tab keeps Herdr's default
 numeric label, so the goto navigator (`prefix+g`) shows the session title the
 agent reports. The Herdr agent itself is unnamed (`herdr agent list` shows
 `null`); Herdr detects it on its own.
