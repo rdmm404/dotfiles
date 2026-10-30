@@ -58,6 +58,10 @@ end
 -- Open Nautilus using Omarchy's standard floating-window treatment.
 o.window("org.gnome.Nautilus", { tag = "+floating-window" })
 
+-- Stop FreeCAD dialogs from reclaiming focus and warping the pointer back.
+-- Retain Omarchy's maximize suppression; leave activation enabled for other apps.
+o.window("^FreeCAD$", { suppress_event = "maximize activate activatefocus" })
+
 -- Match Package > Install's centered floating-terminal treatment.
 o.window("^local\\.python\\.Calculator$", { tag = "+floating-window" })
 -- The local app ID isn't covered by Omarchy's stock terminal-ID matcher.
