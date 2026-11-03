@@ -79,9 +79,8 @@ o.window({ tag = "spotify-window" }, { size = { 1200, 823 } })
 o.window("^.+-web\\.whatsapp\\.com__.*$", { workspace = "6" })
 
 
-o.window("chromium-browser", {
-    focus_on_activate = false
-})
+-- Don't let Chromium windows take focus when they open or request activation.
+o.window("^chromium$", { no_initial_focus = true, focus_on_activate = false })
 
 -- Added by hyprmoncfg: its generated monitor rules load last, so nothing before this can override the applied layout.
 do local path = os.getenv("HOME") .. "/.config/hypr/hyprmoncfg-monitors.lua"; local file = io.open(path, "r"); if file then file:close(); dofile(path) end end
