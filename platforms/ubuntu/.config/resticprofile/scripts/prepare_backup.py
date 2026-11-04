@@ -47,9 +47,11 @@ REDIS_CONTAINER = "svc-aiometadata-redis"
 ZIGBEE_CONTAINER = "svc-zigbee2mqtt"
 MQTT_CONTAINER = "svc-mqtt"
 PROMETHEUS_CONTAINER = "svc-prometheus"
-MQTT_BASE_TOPIC = "zigbee2mqtt"  # Current broker allows anonymous clients.
+MQTT_BASE_TOPIC = "zigbee2mqtt"
 REDIS_FILE = HOME / "services/streaming/redis/dump.rdb"
 MQTT_FILE = HOME / "services/home-automation/data/mqtt/data/mosquitto.db"
+# "user:password"; deliberately outside this public repository.
+MQTT_CREDENTIALS_FILE = HOME / "services/home-automation/.mqtt-backup-client"
 PROMETHEUS_DATA = HOME / "services/monitoring/data/prometheus"
 SQLITE_DATABASES = [
     (HOME / "services/home-automation/data/ha/config/home-assistant_v2.db", "home-assistant.db"),
@@ -297,6 +299,7 @@ def request_zigbee_backup(host):
     result = {}
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2,
                          client_id="backup-" + transaction[:16])
+    client.username_pw_set(*MQTT_CREDENTIALS_FILE.read_text().strip().split(":", 1))
 
     def on_connect(connection, userdata, flags, reason, properties):
         if reason.is_failure:
