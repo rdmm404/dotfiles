@@ -70,17 +70,19 @@ Separate database captures and ordinary files are not globally atomic.
 
 ## Credentials and repository
 
-Existing repository: `rclone:nautilus-drive:backups/nautilus`. **Never init.**
-Retain mode-600 `~/.config/resticprofile/{restic-password,rclone.conf}` inside the
-mode-700 directory. Recover the password independently from the existing
-Bitwarden item and recover Drive authorization separately. Do not print resolved
+Repository: `rclone:nautilus-drive:backups/bebop`, split from Nautilus's repository
+on 4 November 2026 with its own password, so Bebop cannot decrypt Nautilus backups.
+Drive access is shared, so it could still delete them. **Never init.**
+Retain root-owned mode-600 `~/.config/resticprofile/{restic-password,rclone.conf}`
+inside the mode-700 directory. Recover the password independently from the
+"Bebop backup restic password" Bitwarden item and recover Drive authorization
+separately. Do not print resolved
 profiles once private webhook includes exist.
 
-The profile lock covers prepare/upload/retention/cleanup. Native restic lock
-retry is 30 minutes for overlap with Nautilus repository operations. Retention
+The profile lock covers prepare/upload/retention/cleanup. Retention
 keeps a 30-day window scoped to host `bebop`, both tags
 `agents,home-and-host-config` and this profile's source paths. Historical Bebop
-and other-host snapshots are not forgotten. Prune is repository-wide, but only
+snapshots are not forgotten. Prune is repository-wide, but only
 unreferenced data can be removed.
 
 ## Finish installation (interactive sudo on Bebop)

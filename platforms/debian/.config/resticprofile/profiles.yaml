@@ -5,7 +5,7 @@ includes:
 global:
   initialize: false
 bebop:
-  repository: "rclone:nautilus-drive:backups/nautilus"
+  repository: "rclone:nautilus-drive:backups/bebop"
   password-file: /home/rdmm404/.config/resticprofile/restic-password
   env:
     RCLONE_CONFIG: /home/rdmm404/.config/resticprofile/rclone.conf
@@ -45,7 +45,7 @@ bebop:
     tag:
       - agents
       - home-and-host-config
-# Same encrypted repository, but retention cannot forget historical Bebop or
-# Nautilus snapshots. Root is required for /etc and system crontabs.
+# Separate repository and password from Nautilus, so this host cannot decrypt
+# Nautilus backups. Root is required for /etc and system crontabs.
 # This host only uses stdlib SQLite exports: no Nautilus containers/uv/paho.
 # Scheduling is explicit, after a successful manual backup and restore test.
