@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# Switch the active workspace between tiling (dwindle) and scrolling.
+#
+# Omarchy's omarchy-hyprland-workspace-layout-toggle also cycles through
+# floating (titlebars plus the dock); this leaves floating out. A floating
+# workspace goes to tiling. The mode is saved where Omarchy saves it, so it
+# survives a login and the bar shows it.
+
+set -u
+
+workspace=$(hyprctl activeworkspace -j | jq -r '.id')
+# Named and special workspaces have negative ids and no saved mode.
+[[ $workspace =~ ^[0-9]+$ ]] || exit 1
+
+modes_dir="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/workspace-layouts"
+mode_file="$modes_dir/$workspace.lua"
+
+case $(omarchy-hyprland-workspace-layout-current) in
+  dwindle)
+    mode=scrolling
+    message=$(omarchy-i18n layout.workspaceScrolling)
+    ;;
+  *)
+    mode=dwindle
+    message=$(omarchy-i18n layout.workspaceTiling)
+    ;;
+esac
+
+apply="o.workspace_mode({ workspace = \"$workspace\", mode = \"$mode\" })"
+if ! hyprctl eval "$apply" >/dev/null 2>&1; then
+  omarchy-notification-send -g 󱂬 "$(omarchy-i18n layout.needsReload)"
+  exit 1
+fi
+
+# On the default layout the workspace follows the default, as Omarchy does.
+if [[ $mode == "$(omarchy-hyprland-workspace-layout-default)" ]]; then
+  rm -f "$mode_file"
+else
+  mkdir -p "$modes_dir" && printf '%s\n' "$apply" >"$mode_file"
+fi
+
+# Replace the previous layout notification instead of stacking another.
+state="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/workspace-layout-notification"
+last=0
+[[ -r $state ]] && read -r last <"$state"
+if id=$(omarchy-notification-send -p -r "${last:-0}" -g 󱂬 "$message") && [[ $id =~ ^[0-9]+$ ]]; then
+  printf '%s\n' "$id" >"$state"
+fi
+
+omarchy-shell -q omarchy.workspaces refresh
+omarchy-shell -q omarchy.dock refresh

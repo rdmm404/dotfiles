@@ -70,3 +70,7 @@ if o.dictation_installed and o.dictation_installed() then
   o.bind("SUPER + CTRL + X", "Toggle dictation", "omarchy-dictation toggle")
   o.bind_hold("F9", "Start dictation (push-to-talk)", "omarchy-dictation start", "Stop dictation (push-to-talk)", "omarchy-dictation stop")
 end
+
+-- Switch layouts between tiling and scrolling only; Omarchy's cycle also
+-- includes floating. Super+Alt+L keeps Omarchy's full cycle.
+o.rebind("SUPER + L", "Toggle tiling/scrolling", "workspace-layout-toggle")
