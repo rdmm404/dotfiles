@@ -1,0 +1,33 @@
+/* UI taste tokens. */
+:root {
+  --bg: #181825;
+  --surface: #1e1e2e;
+  --surface2: #313244;
+  --fg: #cdd6f4;
+  --muted: #a6adc8;
+  --line: #313244;
+  --accent: #bd93f9;
+  --on-accent: #000000;
+  --accent-ink: #bd93f9;
+  --accent-soft: #41385b;
+  --button: #bd93f9;
+  --on-button: #000000;
+  --success: #a6e3a1;
+  --activity: #89dceb;
+  --warning: #f9e2af;
+  --problem: #f38ba8;
+  --font-head: 'JetBrains Mono', system-ui, sans-serif;
+  --font-body: 'JetBrains Mono', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --head-weight: 700;
+  --head-track: -0.03em;
+  --head-lead: 1.15;
+  --text: 13px;
+  --h1: 22px;
+  --h2: 18px;
+  --h3: 15px;
+  --u: 5px;
+  --r: 1px;
+  --r-ctl: 1px;
+  --r-pill: 1px;
+}

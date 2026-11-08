@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>UI taste reference</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+body { margin: 0; padding: 32px; background: #6b6b6b; color: #fff; font: 15px/1.45 system-ui, sans-serif; }
+main { max-width: 1100px; margin-inline: auto; display: flex; flex-direction: column; gap: 24px; }
+h1 { margin: 0; font-size: 22px; }
+.shot { display: grid; min-height: 560px; }
+/* The mock app. Every visual decision comes from variables and data attributes on .mk */
+.mk, .mk * { box-sizing: border-box; margin: 0; }
+.mk {
+  --card-bg: var(--surface); --card-bd: 1px solid var(--line); --card-sh: none; --card-pad: calc(var(--u) * 2.5);
+  --shell-bd: 1px solid var(--line); --nav-bg: var(--bg); --nav-fg: var(--muted);
+  --nav-on-bg: var(--accent-soft); --nav-on-fg: var(--accent-ink);
+  --ctl-bd: 1px solid var(--line); --ctl-bg: var(--surface);
+  --feature-bg: var(--card-bg); --feature-fg: inherit;
+  position: relative; isolation: isolate; display: grid; width: 100%; min-height: 100%;
+  background: var(--bg); color: var(--fg);
+  font: 400 var(--text)/1.5 var(--font-body); -webkit-font-smoothing: antialiased; cursor: default;
+}
+
+/* Layout */
+.mk[data-layout="sidebar"] { grid-template-columns: 208px minmax(0, 1fr); }
+.mk[data-layout="rail"] { grid-template-columns: 64px minmax(0, 1fr); }
+.mk[data-layout="topbar"], .mk[data-layout="centered"] { grid-template-rows: auto 1fr; }
+.mk-nav { display: flex; flex-direction: column; gap: calc(var(--u) * 2); padding: calc(var(--u) * 2); background: var(--nav-bg); border-right: var(--shell-bd); color: var(--nav-fg); }
+.mk-nav nav { display: flex; flex-direction: column; gap: calc(var(--u) * .5); }
+.mk-item { display: flex; align-items: center; gap: var(--u); padding: var(--u) calc(var(--u) * 1.25); border-radius: var(--r-ctl); font-weight: 500; }
+.mk-item.on { background: var(--nav-on-bg); color: var(--nav-on-fg); }
+.mk-init { display: none; }
+.mk-brand { display: flex; align-items: center; gap: var(--u); color: var(--fg); font: var(--head-weight) calc(var(--text) * 1.1)/1.2 var(--font-head); letter-spacing: var(--head-track); }
+.mk-mark { display: grid; place-items: center; width: 26px; height: 26px; flex: none; border-radius: var(--r-ctl); background: var(--button); color: var(--on-button); font-size: 14px; }
+.mk[data-layout="rail"] .mk-nav { align-items: center; padding-inline: 8px; }
+.mk[data-layout="rail"] .mk-brand-name, .mk[data-layout="rail"] .mk-item-label { display: none; }
+.mk[data-layout="rail"] .mk-item { justify-content: center; width: 44px; height: 44px; padding: 0; }
+.mk[data-layout="rail"][data-icons="none"] .mk-init { display: inline; }
+.mk[data-layout="topbar"] .mk-nav, .mk[data-layout="centered"] .mk-nav { flex-direction: row; align-items: center; justify-content: space-between; padding: calc(var(--u) * 1.5) calc(var(--u) * 3); border-right: 0; border-bottom: var(--shell-bd); }
+.mk[data-layout="topbar"] .mk-nav nav, .mk[data-layout="centered"] .mk-nav nav { flex-direction: row; }
+.mk-main { min-width: 0; padding: calc(var(--u) * 4); }
+.mk-content { display: flex; flex-direction: column; gap: calc(var(--u) * 3); }
+.mk[data-layout="centered"] .mk-content { max-width: 680px; margin-inline: auto; }
+
+/* Type */
+.mk h1, .mk h2, .mk h3 { font-family: var(--font-head); font-weight: var(--head-weight); letter-spacing: var(--head-track); line-height: var(--head-lead); }
+.mk h1 { font-size: var(--h1); }
+.mk h2 { font-size: var(--h2); }
+.mk h3 { font-size: var(--h3); }
+.mk-sub { color: var(--muted); }
+.mk-label { font-size: calc(var(--text) * .87); color: var(--muted); }
+.mk th { font-weight: 400; text-align: left; }
+.mk th { font-size: calc(var(--text) * .87); color: var(--muted); }
+.mk[data-labels="strong"] .mk-label, .mk[data-labels="strong"] th { color: var(--fg); font-weight: 700; }
+.mk[data-labels="caps"] .mk-label, .mk[data-labels="caps"] th { font-size: calc(var(--text) * .72); text-transform: uppercase; letter-spacing: .09em; font-weight: 600; }
+.mk[data-labels="mono"] .mk-label, .mk[data-labels="mono"] th { font-family: var(--font-mono); font-size: calc(var(--text) * .8); }
+.mk-data, .mk-code { font-family: var(--font-mono); }
+.mk-data { font-size: calc(var(--text) * .93); }
+
+/* Surfaces */
+.mk-card { background: var(--card-bg); border: var(--card-bd); box-shadow: var(--card-sh); border-radius: var(--r); padding: var(--card-pad); }
+.mk[data-edges="tonal"] { --card-bg: var(--surface2); --card-bd: 0 solid transparent; --shell-bd: 0 solid transparent; --nav-bg: var(--surface); --ctl-bd: 0 solid transparent; --ctl-bg: var(--surface); }
+.mk[data-edges="soft"] { --card-bd: 0 solid transparent; --card-sh: 0 1px 2px rgb(10 10 30 / .08), 0 10px 28px rgb(10 10 30 / .1); --shell-bd: 0 solid transparent; --nav-bg: var(--surface); }
+.mk[data-edges="heavy"], .mk[data-edges="offset"] { --card-bd: 2px solid var(--fg); --shell-bd: 2px solid var(--fg); --ctl-bd: 2px solid var(--fg); }
+.mk[data-edges="offset"] { --card-sh: 5px 5px 0 var(--fg); }
+.mk[data-edges="glass"] { --card-bg: color-mix(in srgb, var(--surface) 55%, transparent); --card-bd: 1px solid color-mix(in srgb, var(--fg) 14%, transparent); --nav-bg: color-mix(in srgb, var(--surface) 45%, transparent); --shell-bd: 1px solid color-mix(in srgb, var(--fg) 12%, transparent); --ctl-bg: color-mix(in srgb, var(--surface) 50%, transparent); }
+.mk[data-edges="glass"] .mk-card, .mk[data-edges="glass"] .mk-nav { backdrop-filter: blur(16px); }
+.mk[data-edges="open"] { --card-bg: transparent; --card-bd: 0 solid transparent; --card-pad: 0; }
+.mk[data-edges="open"] .mk-card:not(.mk-tool):not(.mk-stat) { border-top: 1px solid var(--line); padding-top: calc(var(--u) * 2.5); border-radius: 0; }
+.mk[data-edges="open"] .mk-tool { border-block: 1px solid var(--line); padding-block: calc(var(--u) * 2); border-radius: 0; }
+
+/* Accent amount */
+.mk[data-accentuse="whisper"] { --nav-on-bg: var(--surface2); --nav-on-fg: var(--fg); }
+.mk[data-accentuse="whisper"] .mk-link { color: var(--fg); text-decoration-color: var(--accent-ink); }
+.mk[data-accentuse="loud"] { --nav-bg: var(--accent); --nav-fg: var(--on-accent); --nav-on-bg: var(--on-accent); --nav-on-fg: var(--accent); --feature-bg: var(--accent); --feature-fg: var(--on-accent); }
+.mk[data-accentuse="loud"] .mk-brand { color: var(--on-accent); }
+.mk[data-accentuse="loud"] .mk-mark { background: var(--on-accent); color: var(--accent); }
+.mk[data-accentuse="loud"] .mk-stat.feature { background: var(--feature-bg); color: var(--feature-fg); }
+.mk[data-accentuse="loud"] .mk-stat.feature .mk-label, .mk[data-accentuse="loud"] .mk-stat.feature .mk-delta { color: inherit; }
+
+/* Buttons */
+.mk-btn, .mk-btn2 { display: inline-flex; align-items: center; justify-content: center; gap: calc(var(--u) * .75); min-height: calc(var(--text) * 2.4); padding: calc(var(--u) * .75) calc(var(--u) * 1.75); border: 0; border-radius: var(--r-pill); font: 500 var(--text)/1.2 var(--font-body); white-space: nowrap; background: none; color: var(--fg); }
+.mk-btn2 { border: var(--ctl-bd); background: var(--ctl-bg); }
+.mk-btn { background: var(--button); color: var(--on-button); }
+.mk[data-buttons="soft"] .mk-btn { background: var(--accent-soft); color: var(--accent-ink); }
+.mk[data-buttons="soft"][data-accentuse="whisper"] .mk-btn { background: var(--surface2); color: var(--fg); }
+.mk[data-buttons="outline"] .mk-btn { background: none; color: var(--accent-ink); box-shadow: inset 0 0 0 1.5px currentColor; }
+.mk[data-buttons="outline"][data-accentuse="whisper"] .mk-btn { color: var(--fg); }
+.mk[data-buttons="raised"] .mk-btn { background-image: linear-gradient(rgb(255 255 255 / .22), rgb(0 0 0 / .1)); box-shadow: inset 0 1px 0 rgb(255 255 255 / .4), 0 1px 2px rgb(0 0 0 / .35), 0 3px 8px rgb(0 0 0 / .16); }
+.mk[data-buttons="link"] .mk-btn { background: none; padding-inline: 0; color: var(--accent-ink); text-decoration: underline; text-underline-offset: .22em; text-decoration-thickness: 1.5px; }
+.mk[data-buttons="link"][data-accentuse="whisper"] .mk-btn { color: var(--fg); }
+.mk[data-buttons="offset"] .mk-btn { border: 2px solid var(--fg); box-shadow: 3px 3px 0 var(--fg); }
+.ic { width: 1.15em; height: 1.15em; flex: none; }
+
+/* Page parts */
+.mk-head { display: flex; justify-content: space-between; align-items: flex-start; gap: calc(var(--u) * 2); }
+.mk-head .mk-sub { margin-top: calc(var(--u) * .5); }
+.mk-actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--u); }
+.mk-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: calc(var(--u) * 2); }
+.mk-stat { display: flex; flex-direction: column; gap: calc(var(--u) * .5); }
+.mk-stat strong { font: var(--head-weight) var(--h2)/1.1 var(--font-head); letter-spacing: var(--head-track); }
+.mk-delta { color: var(--muted); font-size: calc(var(--text) * .87); }
+.mk-chart { display: flex; flex-direction: column; gap: calc(var(--u) * 2); }
+.mk-chart h2 { font-size: var(--h3); }
+.mk-bars { display: grid; grid-template-columns: repeat(7, 1fr); gap: calc(var(--u) * 1.5); height: 110px; }
+.mk-bar { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; min-height: 0; color: var(--muted); font-size: 12px; }
+.mk-bar i { width: 100%; background: var(--accent); border-radius: min(var(--r-ctl), 6px) min(var(--r-ctl), 6px) 0 0; }
+.mk-tablewrap { padding: 0; overflow: hidden; }
+.mk table { width: 100%; border-collapse: collapse; }
+.mk th, .mk td { padding: calc(var(--u) * 1.25) calc(var(--u) * 2); }
+.mk td { border-top: 1px solid var(--line); }
+.mk[data-edges="heavy"] td, .mk[data-edges="offset"] td { border-top-color: var(--fg); }
+.mk[data-edges="tonal"] td { border-top-color: color-mix(in srgb, var(--fg) 10%, transparent); }
+.mk[data-edges="open"] th, .mk[data-edges="open"] td { padding-inline: 0 calc(var(--u) * 2); }
+.mk .num { text-align: right; }
+.mk-badge { display: inline-block; padding: 1px calc(var(--u) * .9); border-radius: var(--r-pill); font-size: calc(var(--text) * .85); font-weight: 500; white-space: nowrap; }
+.mk-badge.ok { background: var(--surface2); color: var(--fg); }
+.mk-badge.live { background: var(--accent-soft); color: var(--accent-ink); }
+.mk-badge.bad { box-shadow: inset 0 0 0 1px var(--muted); color: var(--fg); }
+.mk-tablewrap .mk-badge.ok, .mk-tool .mk-badge.ok { background: color-mix(in srgb, var(--fg) 9%, transparent); }
+
+/* Chat */
+.mk-thread { display: flex; flex-direction: column; gap: calc(var(--u) * 2.5); flex: 1; }
+.mk-msg { display: flex; flex-direction: column; gap: calc(var(--u) * 1.5); max-width: 86%; }
+.mk-msg.me { align-self: flex-end; padding: var(--u) calc(var(--u) * 1.75); background: var(--surface2); border-radius: var(--r); }
+.mk-tool { display: flex; flex-direction: column; gap: calc(var(--u) * 1.5); }
+.mk-tool-head { display: flex; align-items: center; gap: var(--u); }
+.mk-tool-head .mk-badge { margin-left: auto; }
+.mk-flight { display: flex; justify-content: space-between; align-items: center; gap: calc(var(--u) * 2); }
+.mk-price { font: var(--head-weight) var(--h2)/1 var(--font-head); letter-spacing: var(--head-track); }
+.mk-composer { display: flex; align-items: center; justify-content: space-between; padding: var(--u) var(--u) var(--u) calc(var(--u) * 2); background: var(--ctl-bg); border: var(--ctl-bd); box-shadow: var(--card-sh); border-radius: var(--r); color: var(--muted); }
+.mk[data-edges="tonal"] .mk-composer { background: var(--surface2); }
+
+/* Article */
+.mk-article { display: flex; flex-direction: column; gap: calc(var(--u) * 2); max-width: 62ch; }
+.mk-article p { line-height: 1.65; }
+.mk-article .mk-label { line-height: 1.4; }
+.mk-article h2 { margin-top: var(--u); }
+.mk-lede { font-size: var(--h3); color: var(--muted); line-height: 1.45 !important; }
+.mk blockquote { padding-left: calc(var(--u) * 2); border-left: 3px solid var(--accent); font: 400 var(--h3)/1.4 var(--font-head); }
+.mk-code { padding: calc(var(--u) * 2); background: var(--surface2); border-radius: var(--r-ctl); font-size: calc(var(--text) * .85); overflow: hidden; white-space: pre-wrap; }
+.mk-link { color: var(--accent-ink); text-decoration: underline; text-underline-offset: .2em; }
+
+/* Form */
+.mk-form { display: flex; flex-direction: column; gap: calc(var(--u) * 2.25); }
+.mk-field { display: flex; flex-direction: column; gap: calc(var(--u) * .6); }
+.mk-input { display: flex; justify-content: space-between; padding: var(--u) calc(var(--u) * 1.5); background: var(--ctl-bg); border: var(--ctl-bd); border-radius: var(--r-ctl); }
+.mk-select em { font-style: normal; color: var(--muted); }
+.mk-seg { display: inline-flex; align-self: flex-start; padding: 3px; gap: 3px; background: var(--surface2); border-radius: var(--r-ctl); }
+.mk-seg span { padding: calc(var(--u) * .5) calc(var(--u) * 1.5); border-radius: max(calc(var(--r-ctl) - 3px), 0px); color: var(--muted); }
+.mk-seg .on { background: var(--bg); color: var(--fg); font-weight: 500; }
+.mk[data-edges="tonal"] .mk-seg { background: var(--surface); }
+.mk-toggle { display: flex; justify-content: space-between; align-items: center; gap: calc(var(--u) * 2); }
+.mk-toggle h3 { font-size: var(--text); font-family: var(--font-body); font-weight: 600; letter-spacing: 0; line-height: 1.4; }
+.mk-switch { position: relative; display: block; width: 38px; height: 22px; flex: none; border-radius: var(--r-pill); background: color-mix(in srgb, var(--fg) 22%, transparent); }
+.mk-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: max(calc(var(--r-pill) - 3px), 0px); background: var(--bg); }
+.mk-switch.on { background: var(--accent); }
+.mk-switch.on::after { left: 19px; background: var(--on-accent); }
+.mk-meter { height: 8px; background: var(--surface2); border-radius: var(--r-pill); overflow: hidden; }
+.mk[data-edges="tonal"] .mk-meter { background: var(--surface); }
+.mk-meter i { display: block; height: 100%; background: var(--accent); }
+
+/* Texture sits behind everything in the mock */
+.mk::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.mk[data-decor="grain"]::before { opacity: .16; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.mk[data-decor="dots"]::before { background-image: radial-gradient(color-mix(in srgb, var(--fg) 24%, transparent) 1px, transparent 1.4px); background-size: 18px 18px; }
+.mk[data-decor="lines"]::before { background-image: linear-gradient(color-mix(in srgb, var(--fg) 8%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--fg) 8%, transparent) 1px, transparent 1px); background-size: 28px 28px; }
+.mk[data-decor="glow"]::before { background-image: radial-gradient(520px 380px at 82% 6%, color-mix(in srgb, var(--accent) 38%, transparent), transparent 70%), radial-gradient(460px 420px at 12% 92%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%); }
+
+/* Several accent colors, each with a fixed job */
+.mk[data-colorrange="several"] h2 { color: var(--accent-ink); }
+.mk[data-colorrange="several"] .mk-badge.ok, .mk[data-colorrange="status"] .mk-badge.ok { background: color-mix(in srgb, var(--success) 16%, transparent); color: var(--success); }
+.mk[data-colorrange="several"] .mk-badge.live, .mk[data-colorrange="status"] .mk-badge.live { background: color-mix(in srgb, var(--activity) 16%, transparent); color: var(--activity); }
+.mk[data-colorrange="several"] .mk-badge.bad, .mk[data-colorrange="status"] .mk-badge.bad { box-shadow: none; background: color-mix(in srgb, var(--problem) 16%, transparent); color: var(--problem); }
+.mk[data-colorrange="status"] .mk-badge.warn { background: color-mix(in srgb, var(--warning) 16%, transparent); color: var(--warning); }
+.mk[data-colorrange="status"] .mk-meter.warn i { background: var(--warning); }
+.mk[data-colorrange="several"] .mk-bar:nth-child(3n + 2) i { background: var(--activity); }
+.mk[data-colorrange="several"] .mk-bar:nth-child(3n) i { background: var(--success); }
+.mk[data-colorrange="several"] blockquote { border-left-color: var(--problem); }
+.mk[data-colorrange="several"] .mk-link { color: var(--activity); }
+.mk[data-colorrange="several"] .mk-price { color: var(--success); }
+
+/* Terminal-style details */
+.mk[data-details="brackets"] .mk-item.on .mk-item-label::before, .mk[data-details="brackets"] .mk-btn::before { content: "["; margin-right: .2em; }
+.mk[data-details="brackets"] .mk-item.on .mk-item-label::after, .mk[data-details="brackets"] .mk-btn::after { content: "]"; margin-left: .2em; }
+.mk[data-details="prompt"] h1::before { content: "> "; color: var(--accent-ink); }
+.mk[data-details="prompt"] h2::before { content: "# "; color: var(--muted); }
+
+</style></head><body><main>
+<h1>Your screens</h1>
+<section class="shot"><div class="mk" data-layout="topbar" data-edges="hairline" data-buttons="solid" data-labels="mono" data-decor="none" data-accentuse="standard" data-icons="none" data-colorrange="status" data-details="none" style="--bg:#181825;--surface:#1e1e2e;--surface2:#313244;--fg:#cdd6f4;--muted:#a6adc8;--line:#313244;--accent:#bd93f9;--on-accent:#000000;--accent-ink:#bd93f9;--accent-soft:#41385b;--button:#bd93f9;--on-button:#000000;--success:#a6e3a1;--activity:#89dceb;--warning:#f9e2af;--problem:#f38ba8;--font-head:'JetBrains Mono', system-ui, sans-serif;--font-body:'JetBrains Mono', system-ui, sans-serif;--font-mono:'JetBrains Mono', ui-monospace, monospace;--head-weight:700;--head-track:-0.03em;--head-lead:1.15;--text:13px;--h1:22px;--h2:18px;--h3:15px;--u:5px;--r:1px;--r-ctl:1px;--r-pill:1px" inert>
+  <aside class="mk-nav">
+    <div class="mk-brand"><span class="mk-mark">R</span><span class="mk-brand-name">Relay</span></div>
+    <nav>
+      <a class="mk-item"><span class="mk-init">C</span><span class="mk-item-label">Chat</span></a><a class="mk-item on"><span class="mk-init">R</span><span class="mk-item-label">Runs</span></a><a class="mk-item"><span class="mk-init">N</span><span class="mk-item-label">Notes</span></a><a class="mk-item"><span class="mk-init">S</span><span class="mk-item-label">Settings</span></a>
+    </nav>
+  </aside>
+  <main class="mk-main"><div class="mk-content">
+  <header class="mk-head">
+    <div><h1>Runs</h1><p class="mk-sub">Everything your agents did this week.</p></div>
+    <div class="mk-actions"><button class="mk-btn2">Filter</button><button class="mk-btn">New run</button></div>
+  </header>
+  <section class="mk-stats">
+    <div class="mk-card mk-stat feature"><span class="mk-label">Completed</span><strong>284</strong><span class="mk-delta">31 more than last week</span></div>
+    <div class="mk-card mk-stat"><span class="mk-label">Median time</span><strong>1m 42s</strong><span class="mk-delta">Down from 2m 05s</span></div>
+    <div class="mk-card mk-stat"><span class="mk-label">Spend</span><strong>$18.40</strong><span class="mk-delta">$40 monthly budget</span></div>
+  </section>
+  <section class="mk-card mk-chart">
+    <h2>Runs per day</h2>
+    <div class="mk-bars"><div class="mk-bar"><i style="height:42%"></i><span>M</span></div><div class="mk-bar"><i style="height:58%"></i><span>T</span></div><div class="mk-bar"><i style="height:36%"></i><span>W</span></div><div class="mk-bar"><i style="height:71%"></i><span>T</span></div><div class="mk-bar"><i style="height:64%"></i><span>F</span></div><div class="mk-bar"><i style="height:88%"></i><span>S</span></div><div class="mk-bar"><i style="height:49%"></i><span>S</span></div></div>
+  </section>
+  <section class="mk-card mk-tablewrap">
+    <table>
+      <thead><tr><th>Task</th><th>Status</th><th>Duration</th><th class="num">Cost</th></tr></thead>
+      <tbody>
+        <tr><td>Sort October receipts</td><td><span class="mk-badge ok">Done</span></td><td class="mk-data">0:48</td><td class="mk-data num">$0.12</td></tr>
+        <tr><td>Summarize lease renewal</td><td><span class="mk-badge live">Running</span></td><td class="mk-data">2:16</td><td class="mk-data num">$0.31</td></tr>
+        <tr><td>Find cheaper flights to Lisbon</td><td><span class="mk-badge ok">Done</span></td><td class="mk-data">4:02</td><td class="mk-data num">$0.74</td></tr>
+        <tr><td>Back up photo library index</td><td><span class="mk-badge bad">Failed</span></td><td class="mk-data">0:09</td><td class="mk-data num">$0.02</td></tr>
+        <tr><td>Check travel budget</td><td><span class="mk-badge warn">Near limit</span></td><td class="mk-data">0:14</td><td class="mk-data num">$0.03</td></tr>
+        <tr><td>Draft reply to the contractor</td><td><span class="mk-badge ok">Done</span></td><td class="mk-data">0:31</td><td class="mk-data num">$0.08</td></tr>
+      </tbody>
+    </table>
+  </section></div></main></div></section>
+<section class="shot"><div class="mk" data-layout="topbar" data-edges="hairline" data-buttons="solid" data-labels="mono" data-decor="none" data-accentuse="standard" data-icons="none" data-colorrange="status" data-details="none" style="--bg:#181825;--surface:#1e1e2e;--surface2:#313244;--fg:#cdd6f4;--muted:#a6adc8;--line:#313244;--accent:#bd93f9;--on-accent:#000000;--accent-ink:#bd93f9;--accent-soft:#41385b;--button:#bd93f9;--on-button:#000000;--success:#a6e3a1;--activity:#89dceb;--warning:#f9e2af;--problem:#f38ba8;--font-head:'JetBrains Mono', system-ui, sans-serif;--font-body:'JetBrains Mono', system-ui, sans-serif;--font-mono:'JetBrains Mono', ui-monospace, monospace;--head-weight:700;--head-track:-0.03em;--head-lead:1.15;--text:13px;--h1:22px;--h2:18px;--h3:15px;--u:5px;--r:1px;--r-ctl:1px;--r-pill:1px" inert>
+  <aside class="mk-nav">
+    <div class="mk-brand"><span class="mk-mark">R</span><span class="mk-brand-name">Relay</span></div>
+    <nav>
+      <a class="mk-item on"><span class="mk-init">C</span><span class="mk-item-label">Chat</span></a><a class="mk-item"><span class="mk-init">R</span><span class="mk-item-label">Runs</span></a><a class="mk-item"><span class="mk-init">N</span><span class="mk-item-label">Notes</span></a><a class="mk-item"><span class="mk-init">S</span><span class="mk-item-label">Settings</span></a>
+    </nav>
+  </aside>
+  <main class="mk-main"><div class="mk-content">
+  <header class="mk-head">
+    <div><h1>Trip to Lisbon</h1><p class="mk-sub">Started Tuesday, 14 messages</p></div>
+    <div class="mk-actions"><button class="mk-btn2">Share</button></div>
+  </header>
+  <div class="mk-thread">
+    <div class="mk-msg me"><p>Find me a direct flight in the second week of March, and keep it under $450.</p></div>
+    <div class="mk-msg ai">
+      <p>I checked three airlines. TAP has the best option, and it lands early enough to make the check-in you booked.</p>
+      <div class="mk-card mk-tool">
+        <div class="mk-tool-head"><span class="mk-label">Flight search</span><span class="mk-badge ok">Done</span></div>
+        <div class="mk-flight"><div><h3>TAP 208, Mar 11</h3><p class="mk-sub">Newark to Lisbon, 6h 55m, direct</p></div><strong class="mk-price">$412</strong></div>
+        <div class="mk-actions"><button class="mk-btn">Hold this fare</button><button class="mk-btn2">See others</button></div>
+      </div>
+      <p>Holding the fare is free for 24 hours. Want me to add it to your calendar too?</p>
+    </div>
+    <div class="mk-msg me"><p>Yes, and put a reminder the day before.</p></div>
+  </div>
+  <div class="mk-composer"><span>Reply to Relay</span><button class="mk-btn" aria-label="Send">Send</button></div></div></main></div></section>
+<section class="shot"><div class="mk" data-layout="topbar" data-edges="hairline" data-buttons="solid" data-labels="mono" data-decor="none" data-accentuse="standard" data-icons="none" data-colorrange="status" data-details="none" style="--bg:#181825;--surface:#1e1e2e;--surface2:#313244;--fg:#cdd6f4;--muted:#a6adc8;--line:#313244;--accent:#bd93f9;--on-accent:#000000;--accent-ink:#bd93f9;--accent-soft:#41385b;--button:#bd93f9;--on-button:#000000;--success:#a6e3a1;--activity:#89dceb;--warning:#f9e2af;--problem:#f38ba8;--font-head:'JetBrains Mono', system-ui, sans-serif;--font-body:'JetBrains Mono', system-ui, sans-serif;--font-mono:'JetBrains Mono', ui-monospace, monospace;--head-weight:700;--head-track:-0.03em;--head-lead:1.15;--text:13px;--h1:22px;--h2:18px;--h3:15px;--u:5px;--r:1px;--r-ctl:1px;--r-pill:1px" inert>
+  <aside class="mk-nav">
+    <div class="mk-brand"><span class="mk-mark">R</span><span class="mk-brand-name">Relay</span></div>
+    <nav>
+      <a class="mk-item"><span class="mk-init">C</span><span class="mk-item-label">Chat</span></a><a class="mk-item"><span class="mk-init">R</span><span class="mk-item-label">Runs</span></a><a class="mk-item on"><span class="mk-init">N</span><span class="mk-item-label">Notes</span></a><a class="mk-item"><span class="mk-init">S</span><span class="mk-item-label">Settings</span></a>
+    </nav>
+  </aside>
+  <main class="mk-main"><div class="mk-content">
+  <article class="mk-article">
+    <p class="mk-label">Notes, updated yesterday</p>
+    <h1>What I learned moving the home server</h1>
+    <p class="mk-lede">The migration took one evening. Working out what had quietly depended on the old machine took two more weeks.</p>
+    <p>Most of the surprises were small. A backup script assumed a hostname, a phone shortcut pointed to an address nobody remembered, and the printer had opinions of its own. None of it was documented, because all of it had been set up one tired night at a time.</p>
+    <h2>Write down the boring parts</h2>
+    <p>Keep a plain list of every service, what it talks to, and how to restart it. The list does not need to be clever. It needs to exist before something breaks.</p>
+    <blockquote>If it only lives in your head, it stops working the day you forget.</blockquote>
+    <pre class="mk-code"><code>rsync -a --delete ~/services/ backup:/srv/services/
+systemctl --user restart relay.service</code></pre>
+    <p>Next time I would move one service a day and <a class="mk-link">keep a running log</a> of what broke.</p>
+  </article></div></main></div></section>
+<section class="shot"><div class="mk" data-layout="topbar" data-edges="hairline" data-buttons="solid" data-labels="mono" data-decor="none" data-accentuse="standard" data-icons="none" data-colorrange="status" data-details="none" style="--bg:#181825;--surface:#1e1e2e;--surface2:#313244;--fg:#cdd6f4;--muted:#a6adc8;--line:#313244;--accent:#bd93f9;--on-accent:#000000;--accent-ink:#bd93f9;--accent-soft:#41385b;--button:#bd93f9;--on-button:#000000;--success:#a6e3a1;--activity:#89dceb;--warning:#f9e2af;--problem:#f38ba8;--font-head:'JetBrains Mono', system-ui, sans-serif;--font-body:'JetBrains Mono', system-ui, sans-serif;--font-mono:'JetBrains Mono', ui-monospace, monospace;--head-weight:700;--head-track:-0.03em;--head-lead:1.15;--text:13px;--h1:22px;--h2:18px;--h3:15px;--u:5px;--r:1px;--r-ctl:1px;--r-pill:1px" inert>
+  <aside class="mk-nav">
+    <div class="mk-brand"><span class="mk-mark">R</span><span class="mk-brand-name">Relay</span></div>
+    <nav>
+      <a class="mk-item"><span class="mk-init">C</span><span class="mk-item-label">Chat</span></a><a class="mk-item"><span class="mk-init">R</span><span class="mk-item-label">Runs</span></a><a class="mk-item"><span class="mk-init">N</span><span class="mk-item-label">Notes</span></a><a class="mk-item on"><span class="mk-init">S</span><span class="mk-item-label">Settings</span></a>
+    </nav>
+  </aside>
+  <main class="mk-main"><div class="mk-content">
+  <header class="mk-head">
+    <div><h1>Settings</h1><p class="mk-sub">Choose how Relay works for you.</p></div>
+  </header>
+  <section class="mk-card mk-form">
+    <h2>Assistant</h2>
+    <label class="mk-field"><span class="mk-label">Name</span><span class="mk-input">Relay</span></label>
+    <label class="mk-field"><span class="mk-label">Default model</span><span class="mk-input mk-select">Balanced <em>▾</em></span></label>
+    <div class="mk-field"><span class="mk-label">Reply length</span>
+      <div class="mk-seg"><span>Short</span><span class="on">Medium</span><span>Long</span></div>
+    </div>
+    <div class="mk-toggle"><div><h3>Ask before spending money</h3><p class="mk-sub">Relay stops and checks with you first.</p></div><i class="mk-switch on"></i></div>
+    <div class="mk-toggle"><div><h3>Daily summary</h3><p class="mk-sub">Get a short recap every morning at 8:00.</p></div><i class="mk-switch"></i></div>
+    <div class="mk-actions"><button class="mk-btn">Save changes</button><button class="mk-btn2">Cancel</button></div>
+  </section>
+  <section class="mk-card mk-form">
+    <h2>Usage this month</h2>
+    <div class="mk-meter"><i style="width:46%"></i></div>
+    <p class="mk-sub">$18.40 of your $40 budget</p>
+    <div class="mk-meter warn"><i style="width:88%"></i></div>
+    <p class="mk-sub">$35.20 of your $40 travel budget <span class="mk-badge warn">Near limit</span></p>
+  </section></div></main></div></section>
+<h1>Optional: prompt marks before titles and headings</h1>
+<section class="shot"><div class="mk" data-layout="topbar" data-edges="hairline" data-buttons="solid" data-labels="mono" data-decor="none" data-accentuse="standard" data-icons="none" data-colorrange="status" data-details="prompt" style="--bg:#181825;--surface:#1e1e2e;--surface2:#313244;--fg:#cdd6f4;--muted:#a6adc8;--line:#313244;--accent:#bd93f9;--on-accent:#000000;--accent-ink:#bd93f9;--accent-soft:#41385b;--button:#bd93f9;--on-button:#000000;--success:#a6e3a1;--activity:#89dceb;--warning:#f9e2af;--problem:#f38ba8;--font-head:'JetBrains Mono', system-ui, sans-serif;--font-body:'JetBrains Mono', system-ui, sans-serif;--font-mono:'JetBrains Mono', ui-monospace, monospace;--head-weight:700;--head-track:-0.03em;--head-lead:1.15;--text:13px;--h1:22px;--h2:18px;--h3:15px;--u:5px;--r:1px;--r-ctl:1px;--r-pill:1px" inert>
+  <aside class="mk-nav">
+    <div class="mk-brand"><span class="mk-mark">R</span><span class="mk-brand-name">Relay</span></div>
+    <nav>
+      <a class="mk-item"><span class="mk-init">C</span><span class="mk-item-label">Chat</span></a><a class="mk-item"><span class="mk-init">R</span><span class="mk-item-label">Runs</span></a><a class="mk-item"><span class="mk-init">N</span><span class="mk-item-label">Notes</span></a><a class="mk-item on"><span class="mk-init">S</span><span class="mk-item-label">Settings</span></a>
+    </nav>
+  </aside>
+  <main class="mk-main"><div class="mk-content">
+  <header class="mk-head">
+    <div><h1>Settings</h1><p class="mk-sub">Choose how Relay works for you.</p></div>
+  </header>
+  <section class="mk-card mk-form">
+    <h2>Assistant</h2>
+    <label class="mk-field"><span class="mk-label">Name</span><span class="mk-input">Relay</span></label>
+    <label class="mk-field"><span class="mk-label">Default model</span><span class="mk-input mk-select">Balanced <em>▾</em></span></label>
+    <div class="mk-field"><span class="mk-label">Reply length</span>
+      <div class="mk-seg"><span>Short</span><span class="on">Medium</span><span>Long</span></div>
+    </div>
+    <div class="mk-toggle"><div><h3>Ask before spending money</h3><p class="mk-sub">Relay stops and checks with you first.</p></div><i class="mk-switch on"></i></div>
+    <div class="mk-toggle"><div><h3>Daily summary</h3><p class="mk-sub">Get a short recap every morning at 8:00.</p></div><i class="mk-switch"></i></div>
+    <div class="mk-actions"><button class="mk-btn">Save changes</button><button class="mk-btn2">Cancel</button></div>
+  </section>
+  <section class="mk-card mk-form">
+    <h2>Usage this month</h2>
+    <div class="mk-meter"><i style="width:46%"></i></div>
+    <p class="mk-sub">$18.40 of your $40 budget</p>
+    <div class="mk-meter warn"><i style="width:88%"></i></div>
+    <p class="mk-sub">$35.20 of your $40 travel budget <span class="mk-badge warn">Near limit</span></p>
+  </section></div></main></div></section>
+</main></body></html>
