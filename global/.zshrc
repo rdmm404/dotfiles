@@ -61,3 +61,6 @@ fi
 
 # Added by Antigravity CLI installer
 export PATH="/home/rdmm404/.local/bin:$PATH"
+
+# opencode
+export PATH=/home/rdmm404/.opencode/bin:$PATH
