@@ -74,3 +74,25 @@ end
 -- Switch layouts between tiling and scrolling only; Omarchy's cycle also
 -- includes floating. Super+Alt+L keeps Omarchy's full cycle.
 o.rebind("SUPER + L", "Toggle tiling/scrolling", "workspace-layout-toggle")
+
+-- Switch monitors without walking through windows the way Super+Arrow does.
+o.bind("SUPER + Page_Up", "Focus previous monitor", hl.dsp.focus({ monitor = "-1" }))
+o.bind("SUPER + Page_Down", "Focus next monitor", hl.dsp.focus({ monitor = "+1" }))
+
+-- Super+F<N> focuses monitor N, numbered in the order Omarchy gives monitors
+-- their workspaces (monitor 1 owns 1-10, monitor 2 owns 11-20).
+local function focus_monitor(number)
+  return function()
+    for _, monitor in ipairs(hl.get_monitors()) do
+      local block = (o.workspaces.workspace_id(monitor, 1) - 1) // o.workspaces.slots
+      if block == number - 1 then
+        hl.dispatch(hl.dsp.focus({ monitor = monitor.name }))
+        return
+      end
+    end
+  end
+end
+
+for number = 1, 4 do
+  o.bind("SUPER + F" .. number, "Focus monitor " .. number, focus_monitor(number))
+end
