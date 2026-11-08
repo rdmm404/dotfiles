@@ -25,11 +25,11 @@ o.bind("SUPER + D", "Downloads", { launch = 'nautilus "$HOME/Downloads"' })
 hl.unbind("SUPER + SHIFT + A")
 o.bind("SUPER + SHIFT + A", "ChatGPT (native)", { launch = "chatgpt" })
 
--- Replace Omacalc with the persistent Python calculator.
-hl.unbind("SUPER + CTRL + Q")
-hl.unbind("XF86Calculator")
+-- Replace Omacalc with the persistent Python calculator. Omarchy 4.5 moved
+-- Omacalc to Super+Shift+Q; Super+Ctrl+Q stays as the familiar key.
+o.rebind("SUPER + SHIFT + Q", "Calculator (Python)", "python-calculator")
+o.rebind("XF86Calculator", "Calculator (Python)", "python-calculator")
 o.bind("SUPER + CTRL + Q", "Calculator (Python)", "python-calculator")
-o.bind("XF86Calculator", "Calculator (Python)", "python-calculator")
 
 -- Launch Herdr with compact Ghostty padding while preserving the current directory.
 hl.unbind("SUPER + CTRL + RETURN")
