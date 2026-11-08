@@ -28,33 +28,6 @@ require("default.hypr.toggles")
 
 -- Add any other personal Hyprland configuration below.
 
--- Keep directional focus/swap commands on the current monitor.
-hl.config({
-  binds = {
-    window_direction_monitor_fallback = false,
-  },
-})
-
--- Give monitor names local aliases for workspace rules.
-local primary_monitor = "DP-1"
-local secondary_monitor = "DP-2"
-
--- Keep workspaces 1-5 on the primary monitor.
-for workspace = 1, 5 do
-  hl.workspace_rule({
-    workspace = tostring(workspace),
-    monitor = primary_monitor,
-  })
-end
-
--- Keep workspaces 6-7 on the secondary monitor.
-for workspace = 6, 7 do
-  hl.workspace_rule({
-    workspace = tostring(workspace),
-    monitor = secondary_monitor,
-  })
-end
-
 -- Open Nautilus using Omarchy's standard floating-window treatment.
 o.window("org.gnome.Nautilus", { tag = "+floating-window" })
 
@@ -75,8 +48,9 @@ o.window({ class = "^org\\.quickshell$", title = "^Omarchy Spotify$" }, { tag = 
 o.window({ class = "^org\\.quickshell$", title = "^Omarchy Spotify$" }, { tag = "+spotify-window" })
 o.window({ tag = "spotify-window" }, { size = { 1200, 823 } })
 
--- Open the WhatsApp web app on workspace 6 (the secondary monitor).
-o.window("^.+-web\\.whatsapp\\.com__.*$", { workspace = "6" })
+-- Open the WhatsApp web app on the secondary monitor's first workspace. From
+-- Omarchy 4.5 each monitor owns a block of ten (DP-1 1-10, DP-2 11-20).
+o.window("^.+-web\\.whatsapp\\.com__.*$", { workspace = "11" })
 
 
 -- Don't let Chromium windows take focus when they open or request activation.
