@@ -46,12 +46,6 @@ o.bind(
 -- o.bind("SUPER + SHIFT + S", nil, "omarchy-capture-screenshot")
 -- o.bind("SUPER + H", nil, "voxtype record toggle")
 -- o.bind("SUPER + PERIOD", nil, "omarchy-shell shell toggle omarchy.emojis")
--- BEGIN Waypaper Video background selector
--- Replaces the stock Omarchy Background switcher binding with the direct selector.
-hl.unbind("SUPER + CTRL + SPACE")
-o.bind("SUPER + CTRL + SPACE", "Waypaper Video backgrounds", "$HOME/.config/omarchy/plugins/io.github.gavidetdoliath.waypaper-video-background/background-selector.sh")
--- END Waypaper Video background selector
-
 -- Launch Bitwarden instead of Omarchy's default 1Password binding.
 hl.unbind("SUPER + SHIFT + SLASH")
 o.bind("SUPER + SHIFT + SLASH", "Passwords", { launch = "bitwarden-desktop" })

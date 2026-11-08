@@ -1,11 +1,5 @@
 {
   // Preserve existing local menu extensions.
-  "style.background": {
-    "icon": "",
-    "label": "Background",
-    "aliases": ["background", "wallpaper"],
-    "action": "$HOME/.config/omarchy/plugins/io.github.gavidetdoliath.waypaper-video-background/background-selector.sh"
-  },
   "style.lockscreen": {
     "icon": "󰌾",
     "label": "Lock Screen",
