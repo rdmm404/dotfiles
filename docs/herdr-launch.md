@@ -43,6 +43,7 @@ The branch and agent pickers rank the same way, minus the tiers.
 | Type a path that exists, then Enter | Same as a folder row |
 | Enter on a remote repo | Clones it into `~/Documents/work/repos/<repo>`, agent in it |
 | ctrl-w on any row | Opens the branch picker for that repo (see below) |
+| ctrl-n on a workspace or folder | Names a new directory inside that folder, then launches there |
 | ctrl-r | Refreshes the remote repo list from GitHub |
 | Esc | Back to the previous step. On the first step, cancel |
 
@@ -51,6 +52,15 @@ last time".
 
 A workspace's folder is its git checkout path, or else its first pane's cwd.
 Picking a folder whose workspace is already open reuses that workspace.
+
+### New directories (ctrl-n)
+
+Use the fuzzy search to find the **parent folder**, then press **ctrl-n**.
+Type the new folder's name and press Enter, then choose an agent (skipped for
+`--shell`). The launcher creates the directory and opens a new workspace there;
+it does not initialize a Git repo. Names can include spaces, but not slashes.
+Existing names are rejected. Esc goes back, and nothing is created until you
+accept the final picker. Ctrl-n does nothing on an uncloned remote repo row.
 
 ### Worktrees (ctrl-w)
 

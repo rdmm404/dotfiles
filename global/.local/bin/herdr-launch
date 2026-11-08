@@ -11,6 +11,7 @@
 #                                    only on origin -> local tracking branch, new worktree
 #                                    new name       -> new branch from HEAD, new worktree
 #   ctrl-r                      -> refresh the remote repo list
+#   ctrl-n on a local folder    -> name a new directory inside it, then launch
 #   typing a path that exists   -> treated like a folder row
 #   esc in a later step         -> back to the previous step
 #
@@ -316,7 +317,7 @@ else
   [ "${#agents[@]}" -gt 0 ] || fail "no supported agent found on PATH (${KNOWN_AGENTS[*]})"
 fi
 
-# Steps: where -> (branch, with ctrl-w) -> agent (skipped for --shell).
+# Steps: where -> (branch with ctrl-w, or name with ctrl-n) -> agent.
 # Esc goes back one step;
 # esc on the first step quits.
 ROWS=$(mktemp "${TMPDIR:-/tmp}/herdr-launch.XXXXXX")
@@ -333,11 +334,11 @@ while :; do
     # re-orders the list on every keystroke.
     rank=$(printf '%q --rank %q' "$SELF" "$ROWS")
     picked=$(rank_rows "$ROWS" "$query" | fzf --ansi --no-sort --delimiter="$TAB" --with-nth=4 \
-      --print-query --expect=ctrl-w --query="$query" \
+      --print-query --expect=ctrl-w,ctrl-n --query="$query" \
       --bind="change:reload($rank {q})" \
       --bind="ctrl-r:reload($(printf '%q --rows fetch >%q' "$SELF" "$ROWS"); $rank {q})" \
       --prompt='where> ' --border-label="$title" \
-      --header="enter: $what  ·  ctrl-w: worktree  ·  ctrl-r: refresh repos  ·  esc: cancel$notice")
+      --header="enter: $what  ·  ctrl-n: new directory here  ·  ctrl-w: worktree  ·  ctrl-r: refresh repos  ·  esc: cancel$notice")
     [ $? -eq 130 ] && exit 0
     query=$(sed -n 1p <<<"$picked")
     key=$(sed -n 2p <<<"$picked")
@@ -360,7 +361,14 @@ while :; do
     fi
 
     branch=""
-    if [ "$key" != ctrl-w ]; then
+    new_dir=""
+    if [ "$key" = ctrl-n ]; then
+      # Remote rows have no local parent directory until cloned.
+      [ "$kind" != remote ] || continue
+      parent=$dir
+      new_name="" name_notice=""
+      step=name
+    elif [ "$key" != ctrl-w ]; then
       step=agent
     elif [ "$kind" = remote ]; then
       step=branch
@@ -368,6 +376,24 @@ while :; do
       git -C "$dir" rev-parse --show-toplevel >/dev/null 2>&1 || fail "not a git repo: $(pretty "$dir")"
       step=branch
     fi
+    ;;
+  name)
+    picked=$(fzf --disabled --print-query --query="$new_name" \
+      --prompt='new directory> ' --border-label=" inside $(pretty "$parent") " \
+      --header="type a folder name  ·  enter: continue  ·  esc: back$name_notice" </dev/null)
+    if [ $? -eq 130 ]; then step=where; continue; fi
+    new_name=$picked
+    case $new_name in
+      ''|.|..|*/*|*"$TAB"*|*$'\n'*)
+        name_notice=$'\nEnter a single folder name (no slashes).'; continue ;;
+    esac
+    new_dir=${parent%/}/$new_name
+    if [ -e "$new_dir" ] || [ -L "$new_dir" ]; then
+      name_notice=$'\nThat name already exists; choose another.'
+      continue
+    fi
+    dir=$new_dir kind=dir target_ws=""
+    step=agent
     ;;
   branch)
     if [ "$kind" = remote ]; then
@@ -394,10 +420,19 @@ while :; do
     agent=$(printf '%s\n' "${agents[@]}" | fzf --tiebreak=index --prompt='agent> ' \
       --border-label="$title" --header='enter: start  ·  esc: back')
     if [ -n "$agent" ]; then break; fi
-    if [ -n "$branch" ]; then step=branch; else step=where; fi
+    if [ -n "$branch" ]; then step=branch
+    elif [ -n "$new_dir" ]; then step=name
+    else step=where; fi
     ;;
   esac
 done
+
+# Only create after all pickers are accepted. Plain mkdir also catches a name
+# created by another process while the agent picker was open.
+if [ -n "$new_dir" ]; then
+  mkdir -- "$new_dir" || fail "could not create $(pretty "$new_dir")"
+  dir=$(cd "$new_dir" && pwd -P)
+fi
 
 if [ -n "$agent" ]; then
   mkdir -p "$STATE_DIR" && printf '%s\n' "$agent" >"$LAST_AGENT_FILE"
