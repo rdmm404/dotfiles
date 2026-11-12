@@ -1,0 +1,142 @@
+#!/bin/sh
+# herdr-worktree: git worktrees in one place, each opened as a Herdr app space.
+#
+#   herdr-worktree create <branch> [--base <ref>] [--cwd <dir>] [--focus]
+#   herdr-worktree remove <path> [--force]
+#   herdr-worktree dir
+#
+# create prints the checkout's path. The branch decides what happens:
+#   checked out somewhere already   that checkout is reused
+#   a local branch                  it's checked out in a new worktree
+#   only on origin                  a local branch tracking it, in a new worktree
+#   a new name                      a new branch from --base (default HEAD)
+# Checkouts go to $WORKTREES_DIR/<repo>/<branch, runs of other characters as ->
+# (default ~/worktrees). It works from any checkout of the repo.
+#
+# The Herdr part is best effort: without the app (or jq), the worktree is still
+# made and a warning says no space opened. A new space is named after the branch,
+# and you're switched back to the space you were on unless --focus. remove closes
+# the checkout's space after git removes it, and keeps the branch.
+set -eu
+
+warn() { printf 'herdr-worktree: %s\n' "$*" >&2; }
+die() { warn "$@"; exit 1; }
+
+root() {
+  r=${WORKTREES_DIR:-$HOME/worktrees}
+  case $r in "~") r=$HOME ;; "~/"*) r=$HOME/${r#"~/"} ;; esac
+  printf '%s\n' "${r%/}"
+}
+
+# The main checkout: the first entry of git worktree list.
+main_of() {
+  git -C "$1" worktree list --porcelain | sed -n '1s/^worktree //p'
+}
+
+# The checkout that has refs/heads/<branch>, if any.
+checkout_of() {
+  git -C "$1" worktree list --porcelain | awk -v ref="refs/heads/$2" '
+    /^worktree / { path = substr($0, 10) }
+    $0 == "branch " ref { print path; exit }'
+}
+
+slug() {
+  printf '%s' "$1" | sed 's/[^A-Za-z0-9._-][^A-Za-z0-9._-]*/-/g; s/^-*//; s/-*$//'
+}
+
+# Prints the app's spaces (herdr-app ls), or warns and fails.
+app_spaces() {
+  if ! command -v herdr-app >/dev/null 2>&1; then warn "herdr-app not found: $1"; return 1; fi
+  if ! command -v jq >/dev/null 2>&1; then warn "jq not found: $1"; return 1; fi
+  if ! herdr-app ls 2>/dev/null; then warn "the Herdr app isn't running: $1"; return 1; fi
+}
+
+# Local spaces made in <path>.
+spaces_at() {
+  jq -r --arg p "$1" '.spaces[] | select(.machine == null and .folder == $p) | .id'
+}
+
+open_space() {
+  path=$1 name=$2 focus=$3
+  ls=$(app_spaces "no space opened for $path") || return 0
+  open=$(printf '%s' "$ls" | spaces_at "$path" | head -n 1)
+  if [ -n "$open" ]; then
+    [ "$focus" = 1 ] && herdr-app do space.select --id "$open" >/dev/null
+    return 0
+  fi
+  was=$(printf '%s' "$ls" | jq -r '.spaces[] | select(.active) | .id' | head -n 1)
+  if ! herdr-app do space.new --name "$name" --folder "$path" >/dev/null 2>&1; then
+    warn "Herdr didn't open a space for $path"
+    return 0
+  fi
+  # space.new always shows the new space.
+  if [ "$focus" != 1 ] && [ -n "$was" ]; then herdr-app do space.select --id "$was" >/dev/null 2>&1 || true; fi
+}
+
+create() {
+  branch= base= cwd=. focus=0
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --base) [ $# -ge 2 ] || die "--base needs a ref"; base=$2; shift 2 ;;
+      --cwd) [ $# -ge 2 ] || die "--cwd needs a folder"; cwd=$2; shift 2 ;;
+      --focus) focus=1; shift ;;
+      -*) die "unknown option $1" ;;
+      *) [ -z "$branch" ] || die "one branch only"; branch=$1; shift ;;
+    esac
+  done
+  [ -n "$branch" ] || die "usage: herdr-worktree create <branch> [--base <ref>] [--cwd <dir>] [--focus]"
+  git check-ref-format --branch "$branch" >/dev/null 2>&1 || die "not a valid branch name: $branch"
+  main=$(main_of "$cwd") || die "not in a git repo: $cwd"
+  [ -n "$main" ] || die "not in a git repo: $cwd"
+
+  path=$(checkout_of "$main" "$branch")
+  if [ -n "$path" ]; then
+    [ -z "$base" ] || warn "$branch is checked out already, --base ignored"
+  else
+    s=$(slug "$branch")
+    [ -n "$s" ] || die "no folder name in $branch"
+    path=$(root)/$(basename "$main")/$s
+    [ ! -e "$path" ] || die "$path exists and isn't a checkout of $branch"
+    mkdir -p "$(dirname "$path")"
+    if git -C "$main" show-ref --verify --quiet "refs/heads/$branch"; then
+      [ -z "$base" ] || warn "$branch exists, --base ignored"
+      git -C "$main" worktree add "$path" "$branch" >&2
+    elif [ -z "$base" ] && git -C "$main" show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+      git -C "$main" worktree add --track -b "$branch" "$path" "origin/$branch" >&2
+    else
+      git -C "$main" worktree add -b "$branch" "$path" "${base:-HEAD}" >&2
+    fi
+  fi
+  open_space "$path" "$branch" "$focus"
+  printf '%s\n' "$path"
+}
+
+remove() {
+  path= force=
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --force) force=--force; shift ;;
+      -*) die "unknown option $1" ;;
+      *) [ -z "$path" ] || die "one path only"; path=$1; shift ;;
+    esac
+  done
+  [ -n "$path" ] || die "usage: herdr-worktree remove <path> [--force]"
+  [ -d "$path" ] || die "no such folder: $path"
+  path=$(cd "$path" && pwd -P)
+  main=$(main_of "$path") || die "not in a git repo: $path"
+  top=$(git -C "$path" rev-parse --show-toplevel)
+  [ "$top" = "$path" ] || die "$path is inside a checkout, not one: use $top"
+  [ "$path" != "$(cd "$main" && pwd -P)" ] || die "$path is the repo's main checkout, not a worktree"
+  git -C "$main" worktree remove $force "$path" >&2
+  ls=$(app_spaces "no space closed for $path") || return 0
+  for id in $(printf '%s' "$ls" | spaces_at "$path"); do
+    herdr-app do space.close --id "$id" --confirmed true >/dev/null 2>&1 || warn "Herdr didn't close space $id"
+  done
+}
+
+case ${1:-} in
+  create) shift; create "$@" ;;
+  remove) shift; remove "$@" ;;
+  dir) root ;;
+  *) die "usage: herdr-worktree create <branch> [--base <ref>] [--cwd <dir>] [--focus] | remove <path> [--force] | dir" ;;
+esac

@@ -1,53 +1,32 @@
 ---
 name: using-worktrees
-description: Use when you need a git worktree, an isolated checkout of a branch, or to work on a branch in parallel. Covers creating, reusing and removing worktrees with herdr. Never use raw `git worktree add`.
+description: Use when you need a git worktree, an isolated checkout of a branch, or to work on a branch in parallel. Covers creating, reusing and removing worktrees with herdr-worktree. Never use raw `git worktree add`.
 ---
 
 # Using worktrees
 
-Create worktrees with `herdr worktree`, not `git worktree add`. Herdr also opens a workspace for the checkout, so Robert can see the work.
-
-Checkouts land in `~/worktrees/<repo>/<branch-slug>`.
+Make and remove worktrees with `herdr-worktree`, not `git worktree`. It puts every checkout in one place and opens it as a space in the Herdr app, so Robert can see the work.
 
 ## Create
 
 ```sh
-herdr worktree create --cwd <main-checkout> --branch <name> [--base <ref>] --no-focus
+cd "$(herdr-worktree create <branch> [--base <ref>])"
 ```
 
-- Always pass `--no-focus`, so you don't steal Robert's focus.
-- `--base <ref>` only applies to a new branch. Default is the repo's current `HEAD`.
-- If the branch already exists, it is checked out as is.
-- Output is JSON. The checkout path is `.result.worktree.path`. `cd` there and work from it.
+It prints the checkout's path; work from there. It runs from any checkout of the repo (`--cwd <dir>` for another repo).
 
-```sh
-herdr worktree create --cwd . --branch feat-x --no-focus | jq -r '.result.worktree.path'
-```
+- A branch checked out somewhere already: you get that checkout. Git allows a branch in one checkout only.
+- A local branch, or one only on `origin`: checked out as is (an `origin` one gets a local tracking branch).
+- A new name: a new branch from `--base`, default the current `HEAD`.
 
-## `--cwd` must be the main checkout
+Checkouts land in `$WORKTREES_DIR/<repo>/<branch-slug>`, default `~/worktrees`.
 
-Running from inside a linked worktree fails with `linked_worktree_source`. Use the repo's main checkout path instead (first line of `git worktree list`).
-
-## Reuse an existing worktree
-
-Git allows a branch in one checkout only. For a worktree made outside herdr (or whose workspace was closed), open it:
-
-```sh
-herdr worktree open --cwd <main-checkout> --path <worktree-path> --no-focus
-```
-
-`herdr worktree list --cwd <main-checkout>` shows all worktrees, their branches and `open_workspace_id`.
+The new space opens in the background: Robert stays where he is. Pass `--focus` only when he asked to be taken there. A warning that no space opened (no app, app not running, no `jq`) is not a failure: the worktree is made, carry on.
 
 ## Remove
 
 ```sh
-herdr worktree remove --workspace <workspace_id>
+herdr-worktree remove <path> [--force]
 ```
 
-- Get the id from `create`/`list` output (`.result.workspace.workspace_id` or `open_workspace_id`).
-- It removes the checkout but keeps the branch. Use `--force` only if Robert agreed to discarding uncommitted changes.
-- Delete the branch yourself with `git branch -d` if it should go.
-
-## Verified
-
-Checked against herdr 0.9.3 in a scratch repo: create, `--base`, existing branch, open, remove, list, and the linked-worktree error.
+It removes the checkout, then closes its space, which ends every terminal in it. Never remove the checkout your own session runs in. The branch stays: delete it with `git branch -d` if it should go. `--force` discards uncommitted changes; use it only if Robert agreed.
