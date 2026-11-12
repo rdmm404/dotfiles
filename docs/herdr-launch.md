@@ -146,12 +146,18 @@ configured title model. Publish settings changes with `/pisync push`.
 Both plugins refresh metadata while running and follow session/name changes.
 Remote agents show their machine in the sidebar's second row; `Local` is hidden.
 
+In the Herdr app (terminals there have `HC_TERMINAL_ID`, not `HERDR_ENV`) the
+reporter runs `hc label $HC_TERMINAL_ID session_title.<agent>=<title>` instead,
+only when the title changes. The flat layout's agents list and launcher show that
+label, else the terminal's own title. Pi's plugin gets this only if it gates on
+the reporter's `inHerdr()` rather than `HERDR_ENV`.
+
 ## Files and dependencies
 
 - `~/.local/bin/herdr-launch`: the script (from `global/`)
 - `~/.config/herdr/config.toml`: the `prefix+a` and `prefix+s` popup bindings and
   `worktrees.directory`
-- `~/.config/herdr/title-report.mjs`: shared presentation-only socket reporter
+- `~/.config/herdr/title-report.mjs`: shared presentation-only reporter (socket, or `hc label` in the app)
 - `~/.pi/agent/extensions/herdr-title/`: Pi-sync-managed title plugin and model settings
 - `~/.config/opencode/plugins/herdr-title/`: auto-discovered OpenCode V2 title plugin
 - `${XDG_STATE_HOME:-~/.local/state}/herdr-launch/last-agent`: last agent used

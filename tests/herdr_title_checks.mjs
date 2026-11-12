@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import net from "node:net"
-import { mkdtemp, rm } from "node:fs/promises"
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { reportTitle } from "../global/.config/herdr/title-report.mjs"
 import opencodePlugin from "../global/.config/opencode/plugins/herdr-title/tui.js"
 
@@ -15,6 +15,7 @@ test("metadata reports presentation without overwriting lifecycle", async () => 
   }))
   await new Promise((resolve) => server.listen(socket, resolve))
   const saved = { ...process.env }
+  delete process.env.HC_TERMINAL_ID
   Object.assign(process.env, { HERDR_ENV: "1", HERDR_SOCKET_PATH: socket, HERDR_PANE_ID: "w1:p2" })
   try {
     assert.equal(await reportTitle("pi", "Fix\nparser"), true)
@@ -36,6 +37,27 @@ test("metadata reports presentation without overwriting lifecycle", async () => 
   }
 })
 
+test("in the Herdr app, the title becomes a label on the core terminal, sent only on change", async () => {
+  const dir = await mkdtemp("/tmp/herdr-title-test-")
+  const log = `${dir}/hc-calls`
+  await writeFile(`${dir}/hc`, `#!/bin/sh\nprintf '%s\\n' "$*" >> "${log}"\n`, { mode: 0o755 })
+  const saved = { ...process.env }
+  delete process.env.HERDR_ENV
+  Object.assign(process.env, { HC_TERMINAL_ID: "t9", PATH: `${dir}:${process.env.PATH}` })
+  const calls = async () => (await readFile(log, "utf8").catch(() => "")).split("\n").filter(Boolean)
+  try {
+    assert.equal(await reportTitle("opencode", "Fix\nparser"), true)
+    assert.equal(await reportTitle("opencode", "Fix parser"), true)
+    assert.deepEqual(await calls(), ["label t9 session_title.opencode=Fix parser"])
+    assert.equal(await reportTitle("opencode", "stale", () => false), false)
+    assert.equal(await reportTitle("opencode", ""), true)
+    assert.deepEqual((await calls()).at(-1), "label t9 session_title.opencode=")
+  } finally {
+    process.env = saved
+    await rm(dir, { recursive: true })
+  }
+})
+
 const settle = () => new Promise((resolve) => setTimeout(resolve, 50))
 
 test("OpenCode reports only the TUI's selected root session and follows renames", async () => {
@@ -48,6 +70,7 @@ test("OpenCode reports only the TUI's selected root session and follows renames"
   }))
   await new Promise((resolve) => server.listen(socket, resolve))
   const saved = { ...process.env }
+  delete process.env.HC_TERMINAL_ID
   Object.assign(process.env, { HERDR_ENV: "1", HERDR_SOCKET_PATH: socket, HERDR_PANE_ID: "w1:p2" })
   let route = { type: "session", sessionID: "child" }
   const sessions = {

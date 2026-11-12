@@ -54,11 +54,18 @@ function leadPanes(all) {
   return leads;
 }
 
-function title(tab, l) {
+// The session title an agent labelled its terminal with (dotfiles' herdr/title-report.mjs),
+// else none. `l` is a pane (terminal) or an agent (address).
+function sessionTitle(byAddress, l) {
+  return byAddress.get(l?.terminal ?? l?.address)?.labels?.[`session_title.${l?.program?.key}`] || null;
+}
+
+function title(tab, l, own) {
   const prog = l?.program?.name;
-  const live = clean(l?.title);
+  const raw = own || l?.title || "";
+  const live = clean(raw);
   // clean() would strip a path's leading ~ or /: test the title with only its status glyph gone.
-  const path = /^[~/]|^[A-Za-z]:\\/.test((l?.title ?? "").replace(/^[^\p{L}\p{N}~/]+/u, ""));
+  const path = /^[~/]|^[A-Za-z]:\\/.test(raw.replace(/^[^\p{L}\p{N}~/]+/u, ""));
   const telling = live && live !== prog && !path && !live.includes("@") && live.toLowerCase() !== l?.program?.key;
   return (tab.name === prog || !tab.named) && telling ? live : tab.name;
 }
@@ -293,10 +300,13 @@ export default class Agents extends View {
     // Read the pane snapshot once: every host read copies the whole list into JS.
     const leads = leadPanes(panes());
     const tabs = new Map(spaces().flatMap(s => s.tabs).map(tab => [tab.id, tab]));
+    const byAddress = new Map(terminals().map((x) => [x.address, x]));
     const labels = new Map(list.map(a => {
       const tab = tabs.get(a.tab);
       const many = tabCounts.get(a.tab) > 1;
-      return [a.address, tab ? title(many ? { ...tab, named: false } : tab, many ? a : leads.get(a.tab)) : (clean(a.title) || a.program?.name || "")];
+      const l = many ? a : leads.get(a.tab);
+      return [a.address, tab ? title(many ? { ...tab, named: false } : tab, l, sessionTitle(byAddress, l))
+        : (sessionTitle(byAddress, a) || clean(a.title) || a.program?.name || "")];
     }));
     const label = (a) => labels.get(a.address);
     const detail = new Map(list.map(a => [a.address, /^\d+$/.test(label(a)) ? null : label(a)]));

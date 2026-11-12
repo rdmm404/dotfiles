@@ -1,11 +1,40 @@
 // Presentation only: the built-in Herdr integrations still own agent state.
+// The terminal Herdr gets pane metadata over its socket; the Herdr app gets a
+// `session_title.<agent>` label on the core terminal, which flat-agents shows.
 import net from "node:net"
+import { execFile } from "node:child_process"
 
-export function reportTitle(agent, title, isCurrent = () => true) {
+// Labels don't expire, so a terminal is only labelled again when its title changes.
+const labelled = new Map()
+
+export function inHerdr() {
+  return process.env.HERDR_ENV === "1" || Boolean(process.env.HC_TERMINAL_ID)
+}
+
+export async function reportTitle(agent, title, isCurrent = () => true) {
+  const text = String(title ?? "").replace(/[\x00-\x1f\x7f]/g, " ").trim().slice(0, 200)
+  const results = await Promise.all([reportMetadata(agent, text, isCurrent), labelTerminal(agent, text, isCurrent)])
+  return results.every(Boolean)
+}
+
+function labelTerminal(agent, text, isCurrent) {
+  const terminal = process.env.HC_TERMINAL_ID
+  if (!terminal) return Promise.resolve(true)
+  const key = `${terminal}\u0000${agent}`
+  if (labelled.get(key) === text) return Promise.resolve(true)
+  if (!isCurrent()) return Promise.resolve(false)
+  return new Promise((resolve) => {
+    execFile("hc", ["label", terminal, `session_title.${agent}=${text}`], { timeout: 2000 }, (error) => {
+      if (!error) labelled.set(key, text)
+      resolve(!error)
+    })
+  })
+}
+
+function reportMetadata(agent, text, isCurrent) {
   const { HERDR_ENV, HERDR_SOCKET_PATH, HERDR_PANE_ID } = process.env
   if (HERDR_ENV !== "1" || !HERDR_SOCKET_PATH || !HERDR_PANE_ID) return Promise.resolve(true)
   const display = agent === "pi" ? "Pi" : "OpenCode"
-  const text = String(title ?? "").replace(/[\x00-\x1f\x7f]/g, " ").trim().slice(0, 200)
   return new Promise((resolve) => {
     let finished = false
     const socket = net.createConnection(HERDR_SOCKET_PATH)

@@ -1,9 +1,9 @@
-import { reportTitle } from "../../../herdr/title-report.mjs"
+import { inHerdr, reportTitle } from "../../../herdr/title-report.mjs"
 
 export default {
   id: "herdr-title.tui",
   setup(ctx) {
-    if (process.env.HERDR_ENV !== "1") return
+    if (!inHerdr()) return
     let disposed = false
     let lastKey
     let sentAt = 0
