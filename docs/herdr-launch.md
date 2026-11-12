@@ -149,8 +149,9 @@ Remote agents show their machine in the sidebar's second row; `Local` is hidden.
 In the Herdr app (terminals there have `HC_TERMINAL_ID`, not `HERDR_ENV`) the
 reporter runs `hc label $HC_TERMINAL_ID session_title.<agent>=<title>` instead,
 only when the title changes. The flat layout's agents list and launcher show that
-label, else the terminal's own title. Pi's plugin gets this only if it gates on
-the reporter's `inHerdr()` rather than `HERDR_ENV`.
+label, else the terminal's own title. Pi's extensions have their own reporter:
+the work one (`~/.pi/agent/extensions/herdr-title.ts`) sets the same
+`session_title.pi` label; the personal one doesn't yet.
 
 ## Files and dependencies
 
