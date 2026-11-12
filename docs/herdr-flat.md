@@ -67,7 +67,8 @@ are deliberately left untracked:
 - **Keys:** `keys.json` `layout:flat` binds settings, the palette, help, the picker, and the
   rename and close keys. A mod command's key value is `"<mod>.<command>"`. A colon instead of
   the dot makes Herdr reject the whole file.
-- **Rename and close:** `flat-tabs` owns them (see its header). Other mods call
+- **Rename and close:** `flat-tabs` owns them (see its header). Closing never asks, even
+  for a space's last tab: spaces are short-lived, and the launcher brings one back. Other mods call
   `setShared("flat-dialog", {action, kind, id})` and then `run("flat-tabs.dialog")`.
 - **Palette:** `go()` in `flat-palette` maps Herdr's screens to the flat copies.
 - **Prefix bar:** `mods/prefix` checks `shared("layout") === "flat"`.

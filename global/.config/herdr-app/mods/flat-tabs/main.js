@@ -26,8 +26,8 @@ function find(node, id) {
   return null;
 }
 
-// Rename and close use the flat prompt and confirm instead of Herdr's own
-// dialogs. This mod is always on screen, so it owns them for the layout:
+// Rename uses the flat prompt instead of Herdr's dialog, and close skips
+// Herdr's confirmation. This mod is always on screen, so it owns both for the layout:
 // keys send "flat-tabs:rename-tab" (rename-space, close-tab, close-space) for
 // what is focused; another flat mod names its target with
 //   setShared("flat-dialog", { action: "rename" | "close", kind: "tab" | "space", id })
@@ -55,18 +55,15 @@ function dialog(action, kind, id) {
     } });
     return;
   }
-  // Closing a tab only asks when it is the last one, which closes its space.
+  // Closing never asks: spaces are short-lived, and the launcher (prefix+a)
+  // brings one back. A tab that isn't its space's last closes alone; the last
+  // tab, or the space itself, closes the space.
   if (kind === "tab" && it.space.tabs.length > 1) {
     run("tab.close", { id: it.id });
     return;
   }
   const space = kind === "space" ? it : it.space;
-  const count = space.tabs.length;
-  openOverlay({ ...flat, mod: "flat-confirm", height: 170, props: {
-    title: `Close ${space.name}?`,
-    detail: `This closes the space and ends ${count === 1 ? "its terminals" : `the terminals in its ${count} tabs`}.`,
-    command: { name: "space.close", args: { id: space.id, confirmed: true } },
-  } });
+  run("space.close", { id: space.id, confirmed: true });
 }
 
 const KEY_COMMANDS = {
