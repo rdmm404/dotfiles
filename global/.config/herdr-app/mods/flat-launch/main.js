@@ -433,7 +433,7 @@ export default class Launch extends View {
       if (on) selected = rows.length;
       const pick = (_e, cx) => { this.inPanel = true; this.pat = i; cx.notify(); };
       if (it.kind === "agent") rows.push(this.row(t, `agent-${i}`, on, [this.icon(it.a.program, 14, t.muted),
-        div().flex_1().min_w(0).truncate().child(it.a.title || it.a.app || "agent"), this.meta(t, it.a.tab_name), this.status(t, it.a.status)], pick));
+        div().flex_1().min_w(0).truncate().child(it.a.title?.replace(/^OC \| /, "") || it.a.app || "agent"), this.meta(t, it.a.tab_name), this.status(t, it.a.status)], pick));
       if (it.kind === "session") rows.push(this.row(t, `session-${i}`, on, [this.icon(this.programs[PROGRAM[it.s.agent]], 14, t.muted),
         div().flex_1().min_w(0).truncate().text_color(it.s.titled ? t.foreground : t.muted).child(it.s.title), this.meta(t, ago(it.s.mtime))], pick));
       if (it.kind === "branch") rows.push(this.row(t, `branch-${i}`, on, [div().flex_1().min_w(0).truncate().child(it.b.name),
