@@ -1,9 +1,11 @@
 #!/bin/bash
 
-# Give the Herdr app the Omarchy theme.
+# Give the Herdr app the Omarchy theme, and keep the dotfiles' copy current.
 # Omarchy renders ~/.config/omarchy/themed/herdr.json.tpl into the current theme
-# directory; this copies it into Herdr's themes/ as "omarchy" (a copy, so Herdr's
-# file watcher sees a write) and selects it when the app is running.
+# directory. Herdr's themes/omarchy.json is a link into the dotfiles (global/,
+# so every machine gets the theme): this writes the render into the linked file,
+# commits it there, and relinks it so Herdr's watcher (which watches the link)
+# sees the change. Without the link it writes a plain file as before.
 # Omarchy passes the selected theme slug as $1.
 
 GENERATED="$HOME/.local/state/omarchy/current/theme/herdr.json"
@@ -24,8 +26,43 @@ if [[ ! -f $GENERATED ]]; then
   exit 0
 fi
 
+# Commits only the theme file, and only on main with no merge or rebase going on,
+# so it never mixes with other work. Other staged changes stay staged.
+commit_theme() {
+  local file=$1 slug=$2 repo git_dir
+  repo=$(git -C "$(dirname "$file")" rev-parse --show-toplevel 2>/dev/null) || return 0
+  git_dir=$(git -C "$repo" rev-parse --absolute-git-dir)
+  if [[ $(git -C "$repo" branch --show-current) != main ]]; then
+    log "Not committed: the dotfiles aren't on main"
+    return 0
+  fi
+  if [[ -e $git_dir/MERGE_HEAD || -d $git_dir/rebase-merge || -d $git_dir/rebase-apply ]]; then
+    log "Not committed: a merge or rebase is in progress"
+    return 0
+  fi
+  git -C "$repo" add -- "$file"
+  git -C "$repo" diff --cached --quiet -- "$file" && return 0
+  if git -C "$repo" commit --quiet --only -m "Sync the Herdr app theme to Omarchy's ${slug:-current} theme" -- "$file"; then
+    log "Committed the theme to the dotfiles"
+  else
+    log "Could not commit the theme"
+  fi
+}
+
 mkdir -p "$HERDR_HOME/themes"
-cp -f "$GENERATED" "$TARGET"
+if [[ -L $TARGET ]]; then
+  link=$(readlink "$TARGET")
+  real=$(readlink -f "$TARGET")
+  if [[ -z $real || ! -d $(dirname "$real") ]]; then
+    log "Skipped: $TARGET is a broken link (run ./dot deploy)"
+    exit 0
+  fi
+  cp -f "$GENERATED" "$real"
+  commit_theme "$real" "$1"
+  ln -sfn "$link" "$TARGET"
+else
+  cp -f "$GENERATED" "$TARGET"
+fi
 
 # Selecting the theme needs a running window; the pick persists for later starts.
 if [[ -S $HERDR_HOME/herdr-app.sock ]] && command -v herdr-app >/dev/null 2>&1; then
