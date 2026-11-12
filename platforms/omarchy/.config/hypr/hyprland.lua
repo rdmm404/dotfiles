@@ -40,6 +40,11 @@ o.window("^local\\.python\\.Calculator$", { tag = "+floating-window" })
 -- The local app ID isn't covered by Omarchy's stock terminal-ID matcher.
 o.window("^local\\.python\\.Calculator$", { tag = "+terminal" })
 
+-- The Herdr app is a terminal too: the tag makes Super+C/V send Ctrl+Shift+C/V
+-- (terminal.copy/paste) instead of Ctrl+C/V, which Herdr reads as an interrupt
+-- and an image paste.
+o.window("^herdr-app$", { tag = "+terminal" })
+
 -- Float only the Omarchy Spotify music window, not every Quickshell window.
 -- Hyprland accepts one dynamic tag per rule. The panel's title is assigned
 -- after its surface is created, so the title rule adds a second tag and the
