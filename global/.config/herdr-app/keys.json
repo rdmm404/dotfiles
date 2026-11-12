@@ -80,5 +80,16 @@
     "ctrl-v": "terminal.paste_image",
     "ctrl-insert": "terminal.copy",
     "shift-insert": "terminal.paste"
+  },
+  "layout:flat": {
+    "ctrl-,": "mod.open:flat-settings",
+    "ctrl-shift-p": "mod.open:flat-palette",
+    "ctrl-?": "mod.open:flat-help",
+    "ctrl-shift-/": "mod.open:flat-help",
+    "ctrl-shift-?": "mod.open:flat-help",
+    "ctrl-shift-k": "mod.open:flat-picker",
+    "f2": "flat-tabs.rename-tab",
+    "shift-f2": "flat-tabs.rename-space",
+    "ctrl-shift-w": "flat-tabs.close-tab"
   }
 }

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# Redeploy the Discord theme after Omarchy's font changes.
+bash "$HOME/.config/omarchy/hooks/theme-set.d/discord-theme-sync"

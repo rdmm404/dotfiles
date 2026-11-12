@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# Deploy the Omarchy-generated palette and vendored stylesheet to
+# Vesktop/Vencord-compatible clients. Omarchy passes the theme slug as $1.
+
+CURRENT_THEME_DIR="$HOME/.local/state/omarchy/current/theme"
+COLORS="$CURRENT_THEME_DIR/vencord-colors.css"
+VENDORED_CSS="$HOME/.config/omarchy/vendor/base16-discord/omarchy-discord.theme.css"
+CURRENT_FONT=$(omarchy-font-current 2>/dev/null || printf 'gg sans')
+CURRENT_FONT=${CURRENT_FONT//\\/\\\\}
+CURRENT_FONT=${CURRENT_FONT//\"/\\\"}
+THEME_DIRS=(
+  "$HOME/.config/Vencord/themes"
+  "$HOME/.config/vesktop/themes"
+  "$HOME/.config/Equicord/themes"
+  "$HOME/.config/equibop/themes"
+  "$HOME/.var/app/dev.vencord.Vesktop/config/vesktop/themes"
+  "$HOME/.var/app/io.github.equicord.equibop/config/equibop/themes"
+)
+
+log() {
+  printf '[omarchy discord theme] %s\n' "$*"
+}
+
+if [[ ! -f $COLORS || ! -f $VENDORED_CSS ]]; then
+  log "Skipped: generated colors or vendored stylesheet is missing"
+  exit 0
+fi
+
+found=0
+for theme_dir in "${THEME_DIRS[@]}"; do
+  [[ -d $theme_dir ]] || continue
+  found=1
+  destination="$theme_dir/omarchy.theme.css"
+  temporary=$(mktemp "$theme_dir/.omarchy.theme.css.XXXXXX") || continue
+
+  if {
+    cat "$COLORS"
+    cat <<EOF
+
+:root {
+    --font: "$CURRENT_FONT";
+    --font-code: var(--font);
+    --font-primary: var(--font);
+    --font-display: var(--font);
+    --font-headline: var(--font);
+    --font-heading: var(--font);
+}
+EOF
+    cat "$VENDORED_CSS"
+  } >"$temporary"; then
+    chmod 0644 "$temporary"
+    mv -f "$temporary" "$destination"
+    log "Updated: $destination"
+  else
+    rm -f "$temporary"
+    log "Failed: $destination"
+  fi
+done
+
+if (( found == 0 )); then
+  log "Skipped: no Vesktop/Vencord-compatible theme directory found"
+fi

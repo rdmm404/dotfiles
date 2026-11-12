@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Make a running Herdr pick up edits made to tracked files in dotfiles.
+#
+# dotfiles deploys Herdr's files as symlinks, and Herdr watches the links,
+# not the files they point to: an edit in the repo goes unseen until the link
+# itself changes. This replaces each link with an identical one. Pass paths
+# relative to the Herdr home (mods/flat-tabs/main.js, keys.json) to relink
+# only those; with none, it relinks every tracked Herdr file.
+set -eu
+
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+HOME_DIR="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
+TRACKED="$ROOT/global/.config/herdr-app"
+
+if [ "$#" -eq 0 ]; then
+  set -- $(cd "$TRACKED" && find . -type f -printf '%P\n')
+fi
+
+for rel in "$@"; do
+  live="$HOME_DIR/$rel"
+  [ -L "$live" ] || continue
+  ln -sfn "$(readlink "$live")" "$live"
+done

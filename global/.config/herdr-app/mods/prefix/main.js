@@ -4,7 +4,7 @@
 
 import { View, div } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { commands, props, run, closeOverlay, theme, settings } from "herdr";
+import { commands, props, run, closeOverlay, theme, settings, shared } from "herdr";
 
 const PREFIX = "ctrl-space";
 
@@ -57,7 +57,19 @@ function rows() {
   return out;
 }
 
+// The flat layout has its own copies of Herdr's screens and dialogs
+// (mods/flat-*); there these bindings open those instead.
+const FLAT = {
+  "app.settings": ["mod.open", { name: "flat-settings" }],
+  "app.help": ["mod.open", { name: "flat-help" }],
+  "tab.rename": ["flat-tabs.rename-tab"],
+  "tab.close": ["flat-tabs.close-tab"],
+  "space.rename": ["flat-tabs.rename-space"],
+  "space.close": ["flat-tabs.close-space"],
+};
+
 function invoke(action) {
+  if (shared("layout") === "flat" && FLAT[action]) return run(...FLAT[action]);
   const at = action.indexOf(":");
   if (at < 0) return run(action, {});
   const name = action.slice(0, at);

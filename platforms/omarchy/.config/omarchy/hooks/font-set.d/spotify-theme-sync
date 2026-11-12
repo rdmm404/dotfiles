@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# Redeploy and apply the Spicetify theme after Omarchy's font changes.
+bash "$HOME/.config/omarchy/hooks/theme-set.d/spotify-theme-sync"

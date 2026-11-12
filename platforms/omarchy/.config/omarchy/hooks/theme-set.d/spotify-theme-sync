@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# Deploy and apply the Omarchy-generated Spicetify theme.
+# Omarchy passes the selected theme slug as $1.
+
+CURRENT_THEME_DIR="$HOME/.local/state/omarchy/current/theme"
+GENERATED_COLORS="$CURRENT_THEME_DIR/spotify-color.ini"
+GENERATED_CSS="$CURRENT_THEME_DIR/spotify-user.css"
+CURRENT_FONT=$(omarchy-font-current 2>/dev/null || printf 'sans-serif')
+CURRENT_FONT=${CURRENT_FONT//\\/\\\\}
+CURRENT_FONT=${CURRENT_FONT//\"/\\\"}
+SPICETIFY_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/spicetify"
+THEME_DIR="$SPICETIFY_DIR/Themes/omarchy"
+
+log() {
+  printf '[omarchy spotify theme] %s\n' "$*"
+}
+
+if ! command -v spicetify >/dev/null 2>&1; then
+  log "Skipped: Spicetify is not installed"
+  exit 0
+fi
+
+if [[ ! -f $GENERATED_COLORS || ! -f $GENERATED_CSS ]]; then
+  log "Skipped: generated theme files are missing"
+  exit 0
+fi
+
+mkdir -p "$THEME_DIR"
+cp -f "$GENERATED_COLORS" "$THEME_DIR/color.ini"
+{
+  cat <<EOF
+*,
+html,
+body {
+    font-family: "$CURRENT_FONT" !important;
+}
+EOF
+  cat "$GENERATED_CSS"
+} >"$THEME_DIR/user.css"
+
+if spicetify config current_theme omarchy >/dev/null &&
+   spicetify config color_scheme base >/dev/null &&
+   spicetify apply >/dev/null; then
+  log "Updated"
+else
+  log "Failed; run 'spicetify apply' manually for details"
+fi

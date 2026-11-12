@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Give the Herdr app the Omarchy theme.
+# Omarchy renders ~/.config/omarchy/themed/herdr.json.tpl into the current theme
+# directory; this copies it into Herdr's themes/ as "omarchy" (a copy, so Herdr's
+# file watcher sees a write) and selects it when the app is running.
+# Omarchy passes the selected theme slug as $1.
+
+GENERATED="$HOME/.local/state/omarchy/current/theme/herdr.json"
+HERDR_HOME="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
+TARGET="$HERDR_HOME/themes/omarchy.json"
+
+log() {
+  printf '[omarchy herdr theme] %s\n' "$*"
+}
+
+if [[ ! -d $HERDR_HOME ]]; then
+  log "Skipped: Herdr app is not set up"
+  exit 0
+fi
+
+if [[ ! -f $GENERATED ]]; then
+  log "Skipped: generated theme file is missing"
+  exit 0
+fi
+
+mkdir -p "$HERDR_HOME/themes"
+cp -f "$GENERATED" "$TARGET"
+
+# Selecting the theme needs a running window; the pick persists for later starts.
+if [[ -S $HERDR_HOME/herdr-app.sock ]] && command -v herdr-app >/dev/null 2>&1; then
+  herdr-app do app.theme '{"name":"omarchy"}' >/dev/null 2>&1 || log "Could not select theme in Herdr"
+fi
+
+log "Updated"

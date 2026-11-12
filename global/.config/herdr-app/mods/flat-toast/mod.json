@@ -1,0 +1,10 @@
+{
+  "place": "none",
+  "cloned_from": {
+    "name": "toast",
+    "version": "0.1.15"
+  },
+  "overlay": {
+    "frame": "none"
+  }
+}
