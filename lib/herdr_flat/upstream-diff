@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Print what upstream Herdr changed in the files the flat mods were cloned from.
+#
+#   lib/herdr_flat/upstream-diff [NEW_VERSION]
+#
+# Each flat mod's mod.json records cloned_from {name, version}. For every mod
+# this diffs upstream herdrdev/herdr-app between tag v<version> and
+# v<NEW_VERSION> (default: the installed herdr-app), in defaults/mods/<name>/
+# or, for frame/<name>, defaults/frame/<name>/. It also diffs the layout
+# flat.json was cloned from (defaults/layouts/main.json), Herdr's API docs
+# (defaults/AGENTS.md, defaults/herdr.d.ts), and lists upstream mods added or
+# removed. Upstream is kept as a blobless clone in the cache directory.
+# Porting steps: docs/herdr-flat.md, "Porting a Herdr update".
+set -eu
+
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+MODS="$ROOT/global/.config/herdr-app/mods"
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/herdr-flat/herdr-app"
+URL=https://github.com/herdrdev/herdr-app.git
+
+new=${1:-$(herdr-app --version | awk '{print $2}')}
+
+if [ -d "$CACHE/.git" ]; then
+  git -C "$CACHE" fetch --quiet --tags --force origin
+else
+  mkdir -p "$(dirname "$CACHE")"
+  git clone --quiet --filter=blob:none --no-checkout "$URL" "$CACHE"
+fi
+git -C "$CACHE" rev-parse --quiet --verify "v$new^{commit}" >/dev/null ||
+  { echo "upstream has no tag v$new" >&2; exit 1; }
+
+section() { printf '\n==== %s ====\n' "$*"; }
+diff_paths() { # old new paths...
+  local old=$1 to=$2
+  shift 2
+  local out
+  out=$(git -C "$CACHE" diff "v$old" "v$to" -- "$@")
+  if [ -n "$out" ]; then printf '%s\n' "$out"; else echo "(no upstream changes)"; fi
+}
+
+bases=()
+for json in "$MODS"/flat-*/mod.json; do
+  mod=$(basename "$(dirname "$json")")
+  read -r name old < <(python3 -c 'import json,sys; c=json.load(open(sys.argv[1])).get("cloned_from") or {}; print(c.get("name",""), c.get("version",""))' "$json")
+  [ -n "$name" ] && [ -n "$old" ] || { section "$mod: no cloned_from, skipped"; continue; }
+  bases+=("$old")
+  case $name in
+    frame/*) path="defaults/$name" ;;
+    *) path="defaults/mods/$name" ;;
+  esac
+  section "$mod <- $path  v$old -> v$new"
+  [ "$old" = "$new" ] && { echo "(already at v$new)"; continue; }
+  diff_paths "$old" "$new" "$path"
+done
+
+old=$(printf '%s\n' "${bases[@]}" | sort -V | head -n1)
+if [ "$old" != "$new" ]; then
+  section "layouts/flat.json <- defaults/layouts/main.json  v$old -> v$new"
+  diff_paths "$old" "$new" defaults/layouts/main.json
+  section "upstream mods and frames added or removed  v$old -> v$new"
+  git -C "$CACHE" diff --name-status "v$old" "v$new" -- defaults/mods defaults/frame |
+    awk '$1 != "M"' | grep . || echo "(none)"
+  section "API docs: defaults/AGENTS.md, defaults/herdr.d.ts  v$old -> v$new"
+  diff_paths "$old" "$new" defaults/AGENTS.md defaults/herdr.d.ts
+fi

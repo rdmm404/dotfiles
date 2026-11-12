@@ -26,6 +26,8 @@ Everything lives in this repo. `~/.config/herdr-app` holds only per-file symlink
 | Prefix bar | `global/.config/herdr-app/mods/prefix/main.js` (the user's own mod) |
 | Tokens | `lib/herdr_flat/flat.js`, copied in by `lib/herdr_flat/sync` |
 | Reload | `lib/herdr_flat/reload` |
+| Upstream diff | `lib/herdr_flat/upstream-diff` |
+| Update check | `init()` in `mods/flat-workspace-status/main.js` |
 | Tests | `tests/herdr_flat_test.sh`, `tests/herdr_flat_checks.py` (run by `tests/run`) |
 
 Each script's header comment explains how it works; this doc doesn't repeat it.
@@ -144,15 +146,42 @@ Leave the user's app and core running.
 - **`tests/herdr_launch_test.sh` fails inside the agent sandbox** because it can't create
   `/tmp/opencode`. This has nothing to do with the flat layout.
 
+## Porting a Herdr update
+
+Herdr updates itself and never touches clones, so after an update the flat mods lag upstream
+until they're ported. Herdr has no hooks, so the status bar mod checks on every start. When
+`updates().app.version` differs from its own `cloned_from.version`, it posts a toast once per
+version and shows "port flat mods <old> → <new>" in the status bar. Clicking either opens a
+Claude tab in this repo with the porting task, which points here. The status bar item stays
+until the port bumps the versions.
+
+Steps for the porting agent:
+
+1. **Branch:** create `herdr-port-<new>` from `main` with `git switch -c`. Use a branch in this
+   checkout, not a worktree: the running app reads the files through this checkout's symlinks,
+   and the checks need that.
+2. **Diff:** run `lib/herdr_flat/upstream-diff > <scratch>/upstream.diff` and read all of it.
+   It has one section per flat mod, plus `layouts/main.json`, mods added or removed upstream,
+   and Herdr's API docs. Upstream is `herdrdev/herdr-app`, tags `v<version>`.
+3. **Port:** compare each hunk with the flat copy first, since an earlier port or a flat
+   change may already contain it. Apply the rest to the `flat-*` copy, keeping the flat styling (token
+   names, `frame: "none"` with the mod's own box) and the routing to flat copies (`flat-tabs`
+   dialogs, `flat-*` mod names in `openOverlay` and `run`). Apply `main.json` changes to
+   `flat.json` where they fit the flat layout. If the API docs changed something a flat mod
+   relies on, fix the mod. Report new upstream mods to the user rather than cloning them.
+4. **Bump:** set `cloned_from.version` to the new version in every flat mod's `mod.json`,
+   including mods with no upstream changes. This clears the status bar item.
+5. **Check:** run the change loop above for every mod whose code changed, plus
+   `lib/herdr_flat/sync --check`. Run `herdr-app check` on the `~/.config/herdr-app/mods/<mod>`
+   path: on a repo folder it writes `gpui-kit.d.ts` and `jsconfig.json` into the repo. Ask the
+   user to open the click-only screens whose code changed and send screenshots. A port that
+   only bumps versions needs no screenshots.
+6. **Hand back:** commit on the branch and summarise each mod's port for the user. The user
+   merges.
+
 ## Open items
 
-- **Herdr updates (on hold; discuss with the user first):** the idea is a hook that runs when
-  Herdr updates. For each clone, it would diff the upstream source between
-  `cloned_from.version` and the new version and hand the diff to an agent to apply. The
-  upstream source is `herdrdev/herdr-app` (tags `v<version>`), under `defaults/mods/<name>/`,
-  `defaults/layouts/` and presumably `defaults/frame/`. No baselines are stored: upstream is
-  public and tagged, and the clones were checked byte-identical to `v0.1.15`.
 - **Derived colours:** optionally, pin `popover`, `hover`, `selected` and the other derived
-  colours in the template.
+  colours in the template. The user looked and said it can stay as it is.
 - **Unchecked menus:** the tab and space right-click menus open at 200px. Their labels
   truncate and their shortcuts never shrink, but nobody has looked at them on screen yet.
