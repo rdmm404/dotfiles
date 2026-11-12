@@ -82,6 +82,8 @@
     "alt-enter": "pane.split:down",
     "alt-shift-enter": "pane.split:right",
     "alt-escape": "pane.close",
+    "alt-down": "agent.next",
+    "alt-up": "agent.prev",
     "alt-shift-up": "space.prev",
     "alt-shift-down": "space.next",
     "alt-shift-left": "tab.prev",
