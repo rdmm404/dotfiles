@@ -158,7 +158,7 @@ Leave the user's app and core running.
 
 - **Herdr watches the symlinks, not their targets.** An edit in the repo (an editor, a pull,
   the settings dialog writing through the link) shows only on Herdr's fallback, up to ~10s
-  later. While the flat layout shows, `flat-spaces` watches `global/.config/herdr-app/` and
+  later. While the flat layout shows, `flat-spaces` watches `global/` and `platforms/*/` `.config/herdr-app/` and
   runs `reload` on what changed, so it shows in under a second. Elsewhere, or for a new
   file `dot deploy` hasn't linked yet, run `reload` yourself. `touch -h` doesn't trigger a
   reload. A mod's own `./module.js` import fails, since it resolves through the link.
