@@ -13,7 +13,7 @@ HOME_DIR="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
 TRACKED="$ROOT/global/.config/herdr-app"
 
 if [ "$#" -eq 0 ]; then
-  set -- $(cd "$TRACKED" && find . -type f -printf '%P\n')
+  set -- $(cd "$TRACKED" && find . -type f | sed 's|^\./||')
 fi
 
 for rel in "$@"; do
