@@ -52,7 +52,7 @@ const APP = { "claude-code": "claude" };
 // ~ scan: like herdr-launch's, minus the agents' own session stores.
 const SCAN = ["-H", "-td", "-d3", "-E", ".git", "-E", "node_modules", "-E", ".cache", "-E", ".local",
   "-E", ".npm", "-E", ".cargo", "-E", ".rustup", "-E", ".claude/projects", "-E", ".pi/agent/sessions",
-  "-E", "snapshots", "--absolute-path", "."];
+  "-E", "snapshots", "-E", "Library", "-E", ".Trash", "--absolute-path", "."];
 
 // The panel's git state in one call: top, branch, changes, checkouts, branches.
 const GIT = `

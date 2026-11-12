@@ -36,10 +36,29 @@ Each script's header comment explains how it works; this doc doesn't repeat it.
 ## Theme sync
 
 When the Omarchy theme changes, Omarchy renders `herdr.json.tpl` into the theme directory.
-The hook then copies the result to `~/.config/herdr-app/themes/omarchy.json` and, if the app
-is running, runs `herdr-app do app.theme '{"name":"omarchy"}'`. The layout's theme choice is
+The hook then writes the result into `global/.config/herdr-app/themes/omarchy.json` (through
+the deployed link), commits that file alone, and, if the app is running, runs
+`herdr-app do app.theme '{"name":"omarchy"}'`. It commits only on `main` with no merge or
+rebase going on; otherwise the file is left changed for you. The file is in `global/` so
+every machine gets the theme, frozen at the last Omarchy one. The layout's theme choice is
 `{light: omarchy, dark: omarchy}`, set from the theme picker rather than in `flat.json`, so
-the file stays portable.
+the file stays portable. On a new machine, pick "omarchy" once in the picker.
+
+## On macOS
+
+Setting up a new Mac: [herdr-app-macos-setup.md](herdr-app-macos-setup.md).
+
+- **Keys:** `keys.json` is the whole keymap, and Herdr writes its Mac defaults only when there
+  is none. The Mac uses `platforms/macos/.config/herdr-app/keys.json` instead of the global
+  one: Herdr's Mac defaults (`defaults/keys.macos.json` upstream), the same additions as on
+  Linux, and the flat layout's dialogs on Cmd. Option+←/→ stays a word jump in terminals, so
+  tabs are Alt+Shift+←/→, as in the terminal Herdr's Mac override. A key change made in one
+  file usually belongs in the other too.
+- **Prefix:** macOS may take Ctrl+Space for switching input source. Turn that off in System
+  Settings → Keyboard → Shortcuts.
+- **Font:** the UI font is JetBrains Mono (`brew install --cask font-jetbrains-mono`).
+- **Launcher:** needs `fd` and `zoxide` (Homebrew). Finder launches load the login shell's
+  PATH. The folder scan skips `Library` and `.Trash`.
 
 Herdr still derives `popover`, `surface`, `hover`, `selected`, `input` and `solid` itself.
 Pinning them in the template is an open option. The user said "good for now".
