@@ -26,6 +26,9 @@ class CompositionTests(DotFixture):
     def setUp(self):
         super().setUp()
         self.env["UV_CACHE_DIR"] = self.cache.name
+        # Public PyPI only: this machine's uv.toml may point at a registry that needs a login.
+        self.env["UV_NO_CONFIG"] = "1"
+        self.env["UV_DEFAULT_INDEX"] = "https://pypi.org/simple"
         self.relative = Path(".config/app/config.toml")
         self.target = self.home / self.relative
         self.base_file = self.root / "global" / self.relative

@@ -6,7 +6,7 @@ import { reportTitle } from "../global/.config/herdr/title-report.mjs"
 import opencodePlugin from "../global/.config/opencode/plugins/herdr-title/tui.js"
 
 test("metadata reports presentation without overwriting lifecycle", async () => {
-  const dir = await mkdtemp("/tmp/opencode/herdr-title-test-")
+  const dir = await mkdtemp("/tmp/herdr-title-test-")
   const socket = `${dir}/test.sock`
   let request
   const server = net.createServer((client) => client.once("data", (data) => {
@@ -39,7 +39,7 @@ test("metadata reports presentation without overwriting lifecycle", async () => 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 50))
 
 test("OpenCode reports only the TUI's selected root session and follows renames", async () => {
-  const dir = await mkdtemp("/tmp/opencode/herdr-title-test-")
+  const dir = await mkdtemp("/tmp/herdr-title-test-")
   const socket = `${dir}/test.sock`
   const requests = []
   const server = net.createServer((client) => client.once("data", (data) => {

@@ -14,7 +14,8 @@ class LauncherTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
-        self.home = Path(self.tmp.name)
+        # Resolved: macOS temp folders sit behind the /var -> /private/var link.
+        self.home = Path(self.tmp.name).resolve()
         self.bin = self.home / 'bin'
         self.bin.mkdir()
         self.env = dict(os.environ, HOME=str(self.home),

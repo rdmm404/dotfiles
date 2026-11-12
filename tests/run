@@ -27,7 +27,8 @@ else
   printf 'FAIL udev_test.py\n' >&2
 fi
 printf '==> composition_test.py\n'
-if uv run --quiet --no-project --script "$TEST_DIR/composition_test.py"; then
+if UV_NO_CONFIG=1 UV_DEFAULT_INDEX=https://pypi.org/simple \
+  uv run --quiet --no-project --script "$TEST_DIR/composition_test.py"; then
   printf 'PASS composition_test.py\n'
 else
   status=1
