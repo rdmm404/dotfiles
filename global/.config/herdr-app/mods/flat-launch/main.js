@@ -53,6 +53,9 @@ const APP = { "claude-code": "claude" };
 const SCAN = ["-H", "-td", "-d3", "-E", ".git", "-E", "node_modules", "-E", ".cache", "-E", ".local",
   "-E", ".npm", "-E", ".cargo", "-E", ".rustup", "-E", ".claude/projects", "-E", ".pi/agent/sessions",
   "-E", "snapshots", "-E", "Library", "-E", ".Trash", "--absolute-path", "."];
+// Linked worktrees: their .git is a file, not a folder. One level deeper than SCAN.
+const LINKED = ["-H", "-tf", "-d4", "-E", "node_modules", "-E", ".cache", "-E", ".local",
+  "-E", "Library", "-E", ".Trash", "--absolute-path", "-g", ".git"];
 
 // The panel's git state in one call: top, branch, changes, checkouts, branches.
 const GIT = `
@@ -158,6 +161,7 @@ export default class Launch extends View {
     this.inPanel = false;
     this.zox = [];
     this.dirs = [];
+    this.linked = new Set();
     this.closed = [];
     this.sessions = [];
     this.agents = [];
@@ -191,6 +195,13 @@ export default class Launch extends View {
         this.dirs = r.stdout.split("\n").filter(Boolean).map((p) => p.replace(/\/$/, ""));
       } catch {}
       done(cx);
+    });
+    cx.spawn(async (cx) => {
+      try {
+        const r = await exec("fd", [...LINKED, HOME]);
+        this.linked = new Set(r.stdout.split("\n").filter(Boolean).map((p) => p.replace(/\/\.git$/, "")));
+        cx.notify();
+      } catch {}
     });
     // The last list sessions.py printed shows at once; the script then reads
     // only what changed since (see its header) and replaces it.
@@ -398,7 +409,7 @@ export default class Launch extends View {
       div().flex_none().w(NAME_W).truncate().text_color(t.foreground).child(base(p.folder)),
       div().flex_1().min_w(0).truncate().text_size(SMALL).text_color(t.dim).child(tilde(p.folder)),
       ...(p.open ? [this.meta(t, "open", t.accent)] : p.closed ? [this.meta(t, "closed")] : []),
-      ...(p.folder.startsWith(`${HOME}/worktrees/`) ? [this.meta(t, "wt")] : []),
+      ...(this.linked.has(p.folder) ? [this.meta(t, "wt")] : []),
       ...(p.sessions ? [this.meta(t, `${p.sessions} past`)] : []),
       ...(p.open ? [this.status(t, p.open.status)] : []),
     ], (_e, cx) => { this.at = i; this.inPanel = false; cx.notify(); })
