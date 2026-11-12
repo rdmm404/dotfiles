@@ -1,0 +1,5 @@
+{
+  "place": "none",
+  "title": "Launch (prototype)",
+  "overlay": { "kind": "dialog", "width": 900, "height": 520, "frame": "none" }
+}
