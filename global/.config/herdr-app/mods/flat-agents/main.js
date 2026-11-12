@@ -286,7 +286,7 @@ export default class Agents extends View {
         .when(!open, (el) => el.child(String(subs.length)));
     };
 
-    // A row reads "space \u00b7 detail": the detail is a tab someone named or the
+    // A row reads space, then detail on its second line: the detail is a tab someone named or the
     // agent's own title, never an automatic tab number unless two rows would
     // otherwise read the same.
     // Read the pane snapshot once: every host read copies the whole list into JS.
@@ -345,16 +345,32 @@ export default class Agents extends View {
         .child(svg(`mods/workspace-chrome/${isPinned ? "pin-off" : "pin"}.svg`).size(13));
       // Under a space header the space goes without saying; an automatic tab number says nothing.
       // Without a space header above (priority, pinned) the row names its space.
+      // There the row takes two lines: the space and the rest, then the title.
       const full = byPriority || isPinned;
       const name = full ? a.space_name || label(a) : more ?? (/^\d+$/.test(label(a)) ? a.program?.name || label(a) : label(a));
-      return h_flex()
-        .id(`ag-${a.address}`)
-        .px(S2)
-        .h(30)
-        .flex_none()
-        .rounded(R)
+      const line = h_flex()
+        .h(full ? 20 : 30)
         .items_center()
         .gap(S2)
+        .when(Boolean(pic), el => el.child(div().id(`agent-fold-${a.address}`)
+          .when(subs.length > 0, el => el.on_click((_e, cx) => {
+            cx.stop_propagation();
+            this.folded.has(a.address) ? this.folded.delete(a.address) : this.folded.add(a.address);
+            cx.notify();
+          })).child(pic)))
+        .child(div().flex_1().min_w(0).truncate().text_color(idle ? t.muted : t.foreground).child(name))
+        .when(Boolean(machine), el => el.child(div().text_size(SMALL).text_color(t.dim).child(machine)))
+        .when(subs.length > 0, el => el.child(fold(a, subs)))
+        .when(this.hovered === a.address, el => el.child(pin))
+        .when(this.hovered !== a.address && Boolean(when), el => el.child(div().flex_none().text_size(SMALL).text_color(t.dim).child(duration(now - when))))
+        .child(this.status(t, a, byPriority && !isPinned));
+      return v_flex()
+        .id(`ag-${a.address}`)
+        .px(S2)
+        .when(full, el => el.py(S1))
+        .flex_none()
+        .rounded(R)
+        .justify_center()
         .when(a.focused, (el) => el.bg(t.selected))
         .cursor_pointer()
         .hover((s) => s.bg(t.hover))
@@ -364,20 +380,9 @@ export default class Agents extends View {
           cx.notify();
         })
         .on_click(() => run("pane.focus", { pane: a.pane }))
-        .when(Boolean(pic), el => el.child(div().id(`agent-fold-${a.address}`)
-          .when(subs.length > 0, el => el.on_click((_e, cx) => {
-            cx.stop_propagation();
-            this.folded.has(a.address) ? this.folded.delete(a.address) : this.folded.add(a.address);
-            cx.notify();
-          })).child(pic)))
-        .child(h_flex().flex_1().min_w(0).gap(S1).items_center()
-          .child(div().min_w(0).max_w(full && more ? 120 : 200).truncate().text_color(idle ? t.muted : t.foreground).child(name))
-          .when(full && Boolean(more), el => el.child(div().flex_1().min_w(0).truncate().text_color(t.dim).child(`\u00b7 ${more}`))))
-        .when(Boolean(machine), el => el.child(div().text_size(SMALL).text_color(t.dim).child(machine)))
-        .when(subs.length > 0, el => el.child(fold(a, subs)))
-        .when(this.hovered === a.address, el => el.child(pin))
-        .when(this.hovered !== a.address && Boolean(when), el => el.child(div().flex_none().text_size(SMALL).text_color(t.dim).child(duration(now - when))))
-        .child(this.status(t, a, byPriority && !isPinned));
+        .child(line)
+        .when(full, el => el.child(div().h(20).flex().items_center()
+          .child(div().min_w(0).truncate().text_color(t.dim).child(more ?? a.program?.name ?? ""))));
     };
 
     // Groups in list order: spaces (grouped) or priority sections. Agents of a
