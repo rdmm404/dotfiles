@@ -192,8 +192,17 @@ export default class Launch extends View {
       } catch {}
       done(cx);
     });
+    // The last list sessions.py printed shows at once; the script then reads
+    // only what changed since (see its header) and replaces it.
     cx.spawn(async (cx) => {
-      try { this.sessions = JSON.parse((await exec("python3", [`${SELF}/sessions.py`, "150"])).stdout || "[]"); } catch {}
+      const cached = readJson(await readTextFile(`${HOME}/.cache/flat-launch/sessions-list.json`).catch(() => null), null);
+      if (Array.isArray(cached) && !this.fresh) { this.sessions = cached; cx.notify(); }
+    });
+    cx.spawn(async (cx) => {
+      try {
+        this.sessions = JSON.parse((await exec("python3", [`${SELF}/sessions.py`, "150"])).stdout || "[]");
+        this.fresh = true;
+      } catch {}
       done(cx);
     });
     cx.spawn(async (cx) => {

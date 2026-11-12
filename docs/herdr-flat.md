@@ -198,6 +198,13 @@ stores.
 Without a title, a session shows its first prompt. For each agent running in a folder, its
 newest session there is hidden, since that's the one already open.
 
+The stores are hundreds of MB, and a title line can be anywhere in a file, so `sessions.py`
+caches in `~/.cache/flat-launch/`. Session files only grow, so `sessions.json` keeps each
+file's offset (at a line end) and what was found so far, and a run reads only the lines added
+since. A file smaller than its offset is read again in full. `sessions-list.json` is the last
+list printed: the launcher shows it on open, and the script's result replaces it. Deleting
+the folder costs one full read.
+
 **Gotchas found while building it:**
 
 - **Tab moves the keyboard out of a mod, and the search input keeps ←/→ for its cursor.**
