@@ -358,7 +358,7 @@ export default class Agents extends View {
             this.folded.has(a.address) ? this.folded.delete(a.address) : this.folded.add(a.address);
             cx.notify();
           })).child(pic)))
-        .child(div().flex_1().min_w(0).truncate().text_color(idle ? t.muted : t.foreground).child(name))
+        .child(div().flex_1().min_w(0).truncate().text_color(full ? t.dim : idle ? t.muted : t.foreground).child(name))
         .when(Boolean(machine), el => el.child(div().text_size(SMALL).text_color(t.dim).child(machine)))
         .when(subs.length > 0, el => el.child(fold(a, subs)))
         .when(this.hovered === a.address, el => el.child(pin))
@@ -382,7 +382,7 @@ export default class Agents extends View {
         .on_click(() => run("pane.focus", { pane: a.pane }))
         .child(line)
         .when(full, el => el.child(div().h(20).flex().items_center()
-          .child(div().min_w(0).truncate().text_color(t.dim).child(more ?? a.program?.name ?? ""))));
+          .child(div().min_w(0).truncate().text_color(idle ? t.muted : t.foreground).child(more ?? a.program?.name ?? ""))));
     };
 
     // Groups in list order: spaces (grouped) or priority sections. Agents of a
