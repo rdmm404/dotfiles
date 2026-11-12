@@ -1,5 +1,8 @@
 # Herdr agent launcher
 
+This is the launcher for Herdr in the terminal. The Herdr app has its own, `flat-launch`,
+described in [the flat layout reference](herdr-flat.md#launcher).
+
 Press **prefix+a** (`ctrl+space a`) in Herdr. A popup asks where, then which
 agent, then closes and focuses the new tab. The agent command (and a clone,
 if any) is typed into that tab's shell, so you watch it start there.

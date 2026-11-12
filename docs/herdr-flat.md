@@ -21,13 +21,14 @@ Everything lives in this repo. `~/.config/herdr-app` holds only per-file symlink
 | Theme template | `platforms/omarchy/.config/omarchy/themed/herdr.json.tpl` |
 | Theme hook | `platforms/omarchy/.config/omarchy/hooks/theme-set.d/herdr-theme-sync` |
 | Layout | `global/.config/herdr-app/layouts/flat.json` |
-| Mods | `global/.config/herdr-app/mods/flat-*` (19) |
+| Mods | `global/.config/herdr-app/mods/flat-*` (20) |
 | Keys | `global/.config/herdr-app/keys.json`, section `layout:flat` |
 | Prefix bar | `global/.config/herdr-app/mods/prefix/main.js` (the user's own mod) |
 | Tokens | `lib/herdr_flat/flat.js`, copied in by `lib/herdr_flat/sync` |
 | Reload | `lib/herdr_flat/reload` |
 | Upstream diff | `lib/herdr_flat/upstream-diff` |
 | Update check | `init()` in `mods/flat-workspace-status/main.js` |
+| Launcher | `mods/flat-launch/` (prefix+a); agents in its `agents.json` |
 | Tests | `tests/herdr_flat_test.sh`, `tests/herdr_flat_checks.py` (run by `tests/run`) |
 
 Each script's header comment explains how it works; this doc doesn't repeat it.
@@ -56,6 +57,7 @@ are deliberately left untracked:
 - **Hand-copied mods:** `flat-settings` and `flat-palette` were copied by hand from
   `frame/settings` and `frame/palette`, which Herdr can't clone. Their `mod.json` records the
   frame as the source.
+- **Own mod:** `flat-launch` has no upstream (see Launcher).
 
 **Overlay frames:** overlays open with `frame: "none"` and draw their own box:
 `.bg(t.popover).border(LINE).border_color(t.border).rounded(R)`.
@@ -146,6 +148,87 @@ Leave the user's app and core running.
 - **`tests/herdr_launch_test.sh` fails inside the agent sandbox** because it can't create
   `/tmp/opencode`. This has nothing to do with the flat layout.
 
+## Launcher
+
+`flat-launch` replaces the terminal `herdr-launch` popup ([herdr-launch.md](herdr-launch.md))
+in the app. It is the flat layout's own mod, not a clone, so it has no `cloned_from` and
+`upstream-diff` skips it. Prefix+a opens it as a centred dialog. The prototype that chose
+this design (three layouts; Spotlight won) is on the `prototype/herdr-app-launcher`
+branch, for reference only.
+
+**What it shows:**
+
+- **Left list:** one row per folder. The rows come from:
+  - open spaces, at their first terminal's live folder rather than `space.folder`;
+  - spaces closed lately (`view.json` `recent`);
+  - zoxide;
+  - a depth-3 `fd` scan of `~`;
+  - folders that past sessions ran in.
+- **Ranking:** with an empty search, open spaces come first, then the rest by use. Typing
+  ranks by fuzzy match, with the last folder name counting most, plus a smaller bonus for use.
+- **Right panel:** the selected folder's git state, the agents running there, its 5 latest
+  sessions, and its branches.
+
+**Keys:**
+
+| Key | Does |
+|---|---|
+| Enter | Starts the chip's agent: a new tab if the folder has an open space, else a new space |
+| Shift+Enter | The same with a shell |
+| Ctrl+Enter | Goes to the folder's open space |
+| Tab / Shift+Tab | Cycles the agent, remembered per folder |
+| → / ← | Enters or leaves the panel; there, Enter resumes a session, focuses a running agent, or opens a branch's checkout |
+
+**Agents:** `agents.json` lists them in Tab order, and the first is the default. It's read
+each time the launcher opens. An entry is one of:
+
+- a Herdr program key (`"claude"`), skipped when that agent isn't installed;
+- `{ "name", "run": [...], "like"?, "icon"? }` for your own command, where `like` borrows a
+  program's icon and name.
+
+**Sessions:** Herdr doesn't keep agent sessions, so `sessions.py` reads the agents' own
+stores.
+
+| Agent | Store | Title | Resume |
+|---|---|---|---|
+| Claude | `~/.claude/projects/*/*.jsonl` | last `custom-title`, else `ai-title` | `claude --resume <id>` |
+| pi | `~/.pi/agent/sessions` | `session_info` `name` | `pi --session <file>` |
+
+Without a title, a session shows its first prompt. For each agent running in a folder, its
+newest session there is hidden, since that's the one already open.
+
+**Gotchas found while building it:**
+
+- **Tab moves the keyboard out of a mod, and the search input keeps ←/→ for its cursor.**
+  The mod claims all four keys with `cx.bind_keys`, scoped to its own
+  `key_context("FlatLaunch")` and again as `"FlatLaunch > Input"`. The second binding
+  outranks the input's own, and the scoping leaves every other input its keys.
+- **Herdr takes Esc for dialogs and popups** before the mod sees it, so Esc only closes; ←
+  steps back.
+- **A popup with no `at` opens at the pointer.** A `dialog` is always centred.
+- **A scrolling list needs a bounded height.** A popup sizes itself to its content. So the
+  frame has a fixed `h(HEIGHT)`, and each list sits in a `flex_1`, `overflow_hidden` box
+  with a `size_full` scroll child. `h_flex` centres its children, so columns need
+  `h_full()`.
+- **Key testing:** `hyprctl sendshortcut` doesn't reach Herdr's UI toolkit. `wtype` does,
+  but only types into the focused window. An agent testing keys needs the user's OK, checks
+  that Herdr is focused before every burst, and keeps launches harmless (open spaces can be
+  closed again).
+
+**Pending after v1:**
+
+- **Remote machines:** pick a saved machine and search its folders. The old launcher asked
+  for the machine first and ran everything over SSH.
+- **GitHub repos:** list uncloned repos for `HERDR_LAUNCH_OWNERS` and clone on pick, with a
+  cached list and a refresh.
+- **Making worktrees:** picking a branch with no checkout only says so. The old launcher
+  handled a local branch, an `origin`-only branch, or a new name, into `~/worktrees`.
+- **New directory** under a picked folder (the old ctrl-n).
+- **More session stores:** OpenCode (SQLite, `~/.local/share/opencode`) and Codex.
+- **Untitled sessions:** pi sessions without a name show their first prompt. That reads
+  poorly, and it would make searching sessions noisy.
+- **Typed path:** Enter on a path that exists but isn't in the list.
+
 ## Porting a Herdr update
 
 Herdr updates itself and never touches clones, so after an update the flat mods lag upstream
@@ -170,7 +253,8 @@ Steps for the porting agent:
    `flat.json` where they fit the flat layout. If the API docs changed something a flat mod
    relies on, fix the mod. Report new upstream mods to the user rather than cloning them.
 4. **Bump:** set `cloned_from.version` to the new version in every flat mod's `mod.json`,
-   including mods with no upstream changes. This clears the status bar item.
+   including mods with no upstream changes (`flat-launch` has none to bump). This clears the
+   status bar item.
 5. **Check:** run the change loop above for every mod whose code changed, plus
    `lib/herdr_flat/sync --check`. Run `herdr-app check` on the `~/.config/herdr-app/mods/<mod>`
    path: on a repo folder it writes `gpui-kit.d.ts` and `jsconfig.json` into the repo. Ask the

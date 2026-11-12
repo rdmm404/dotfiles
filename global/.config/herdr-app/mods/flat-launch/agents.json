@@ -1,0 +1,8 @@
+{
+  "agents": [
+    "claude",
+    "codex",
+    "pi",
+    "opencode"
+  ]
+}

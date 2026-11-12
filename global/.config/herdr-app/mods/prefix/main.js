@@ -39,6 +39,7 @@ const BINDINGS = {
   "shift-s": "app.settings",
   "?": "app.help",
   "d": "window.close",
+  "a": "mod.open:flat-launch",
 };
 const MODIFIER_KEYS = new Set(["shift", "control", "ctrl", "alt", "super", "cmd", "meta", "fn", "win", "platform", "function"]);
 
