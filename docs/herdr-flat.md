@@ -183,5 +183,5 @@ Steps for the porting agent:
 
 - **Derived colours:** optionally, pin `popover`, `hover`, `selected` and the other derived
   colours in the template. The user looked and said it can stay as it is.
-- **Unchecked menus:** the tab and space right-click menus open at 200px. Their labels
-  truncate and their shortcuts never shrink, but nobody has looked at them on screen yet.
+- **Update toast click:** not yet clicked for real. It runs the documented `tab.new` with
+  `argv` and `task`; the first real Herdr update is its first run.
