@@ -1,10 +1,11 @@
 {
-  "zoom": 1.0,
+  "zoom": 1,
   "sounds": {
     "enabled": true
   },
   "font_ligatures": false,
   "pane_scrollbars": false,
-  "minimum_contrast": 1.0,
-  "ui_font": "JetBrains Mono"
+  "minimum_contrast": 1,
+  "ui_font": "JetBrains Mono",
+  "telemetry": false
 }
