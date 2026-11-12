@@ -10,7 +10,9 @@ installing anything not named here.
 
 ## 1. Dotfiles
 
-`git pull` in `~/.dotfiles`, then `./dot deploy`.
+`git pull` in `~/.dotfiles`, then `./dot deploy`. If the app was opened before, quit it
+first and use `--replace`: its own `keys.json` and `settings.json` conflict, and a running app
+writes them back straight away.
 
 Check: `readlink ~/.config/herdr-app/keys.json` ends in
 `platforms/macos/.config/herdr-app/keys.json`, and `command -v herdr-worktree` finds it.
@@ -41,7 +43,10 @@ Check: `herdr-worktree dir` prints the folder Robert's existing worktrees are in
 
 ## 5. Theme
 
-`herdr-app do app.theme '{"name":"omarchy"}'` (the theme file comes from the dotfiles).
+`herdr-app do layout.switch '{"name":"flat"}'`, then
+`herdr-app do app.theme '{"name":"omarchy"}'` (the theme file comes from the dotfiles). The
+theme applies to the layout showing, so switch first. Bring the window to the front before
+`herdr-app shot`: a background window doesn't redraw, so the shot can be stale.
 
 Check: the command prints `{"ok": true}`, and `herdr-app shot` shows the window in the theme's
 dark blue-grey, not Herdr's default.

@@ -56,7 +56,13 @@ Setting up a new Mac: [herdr-app-macos-setup.md](herdr-app-macos-setup.md).
   file usually belongs in the other too.
 - **Prefix:** macOS may take Ctrl+Space for switching input source. Turn that off in System
   Settings → Keyboard → Shortcuts.
-- **Font:** the UI font is JetBrains Mono (`brew install --cask font-jetbrains-mono`).
+- **First deploy:** a fresh install writes its own `keys.json` and `settings.json`, so
+  `dot deploy` reports conflicts. Quit the app first: while it runs it rewrites them as soon
+  as `--replace` moves them, and stow fails again.
+- **Theme:** `app.theme` sets the theme for the layout showing now. Switch to flat
+  (`herdr-app do layout.switch '{"name":"flat"}'`) before setting it.
+- **Font:** the UI font is JetBrains Mono (`brew install --cask font-jetbrains-mono`). The
+  Nerd Font cask alone doesn't do: its family is named differently.
 - **Launcher:** needs `fd` and `zoxide` (Homebrew). Finder launches load the login shell's
   PATH. The folder scan skips `Library` and `.Trash`.
 
