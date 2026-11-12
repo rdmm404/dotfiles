@@ -175,8 +175,6 @@ Leave the user's app and core running.
 - **`cp`, `rm` and `mv` are interactive aliases in the user's shell.** Use `command cp -f` and
   so on.
 - **zsh doesn't split words in `$VAR`.** Use arrays.
-- **`tests/herdr_launch_test.sh` fails inside the agent sandbox** because it can't create
-  `/tmp/opencode`. This has nothing to do with the flat layout.
 
 ## Launcher
 
