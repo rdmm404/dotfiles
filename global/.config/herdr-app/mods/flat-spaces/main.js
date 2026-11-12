@@ -67,15 +67,22 @@ export function tone(t, status) {
 // through the link, an editor, a pull) shows only on Herdr's slow fallback.
 // This watches the repo's copy and relinks what changed, so it shows at once.
 // It lives here because the sidebar is always in the flat layout.
-const DOTFILES_ROOT = `cd "$(dirname "$1")" && cd "$(dirname "$(readlink "$1")")" && pwd -P`;
-const TRACKED = "/global/.config/herdr-app";
+// Prints the repo, then its Herdr folders: global/ and each platforms/<os>/.
+const DOTFILES_ROOTS = `cd "$(dirname "$1")" && cd "$(dirname "$(readlink "$1")")" && g=$(pwd -P) &&
+case "$g" in */global/.config/herdr-app) ;; *) exit 1 ;; esac && r=\${g%/global/.config/herdr-app} &&
+echo "$r" && for d in "$r"/global/.config/herdr-app "$r"/platforms/*/.config/herdr-app; do [ -d "$d" ] && echo "$d"; done`;
 
 function relinkDotfiles(cx) {
   cx.spawn(async (cx) => {
-    const r = await exec("sh", ["-c", DOTFILES_ROOT, "sh", `${appHome()}/settings.json`]).catch(() => null);
-    const root = r?.code === 0 ? r.stdout.trim() : "";
-    if (!root.endsWith(TRACKED)) return; // not deployed from dotfiles
-    const reload = `${root.slice(0, -TRACKED.length)}/lib/herdr_flat/reload`;
+    const r = await exec("sh", ["-c", DOTFILES_ROOTS, "sh", `${appHome()}/settings.json`]).catch(() => null);
+    if (r?.code !== 0) return; // not deployed from dotfiles
+    const [repo, ...roots] = r.stdout.trim().split("\n");
+    for (const root of roots) watchAndRelink(root, `${repo}/lib/herdr_flat/reload`, cx);
+  });
+}
+
+function watchAndRelink(root, reload, cx) {
+  cx.spawn(async (cx) => {
     for (;;) {
       const changed = await watchFolder(root);
       // The root itself means "anything": reload with no paths relinks every file.

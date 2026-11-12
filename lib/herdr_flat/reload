@@ -13,7 +13,9 @@ HOME_DIR="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
 TRACKED="$ROOT/global/.config/herdr-app"
 
 if [ "$#" -eq 0 ]; then
-  set -- $(cd "$TRACKED" && find . -type f | sed 's|^\./||')
+  set -- $(for dir in "$TRACKED" "$ROOT"/platforms/*/.config/herdr-app; do
+    [ -d "$dir" ] && (cd "$dir" && find . -type f | sed 's|^\./||')
+  done | sort -u)
 fi
 
 for rel in "$@"; do
