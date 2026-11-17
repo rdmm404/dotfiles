@@ -164,8 +164,10 @@ export default class Launch extends View {
     this.linked = new Set();
     this.closed = [];
     this.sessions = [];
-    this.agents = [];
-    this.programs = {};
+    const cachedAgents = readJson(localStorage.getItem("agents"), null);
+    this.agents = Array.isArray(cachedAgents) ? cachedAgents : [];
+    this.agentsLoaded = false;
+    this.programs = Object.fromEntries(this.agents.map((a) => [a.key, a]));
     this.git = {};
     this.hist = readJson(localStorage.getItem("hist"), {});
     this.chosen = readJson(localStorage.getItem("agentFor"), {});
@@ -231,7 +233,9 @@ export default class Launch extends View {
           return { ...like, key: e.key ?? e.name ?? e.run[0], name: e.name ?? like.name ?? e.run[0], run: e.run,
             icon: e.icon ?? like.icon ?? null, tint: e.icon ? Boolean(e.tint) : Boolean(like.tint) };
         }).filter(Boolean);
-      } catch {}
+        localStorage.setItem("agents", JSON.stringify(this.agents));
+      } catch (err) { this.problem = `agents: ${err}`; }
+      this.agentsLoaded = true;
       done(cx);
     });
   }
@@ -347,9 +351,13 @@ export default class Launch extends View {
     }
     if (what.session) folder = what.session.folder;
     const open = openSpaces().find(({ at }) => at === folder)?.s;
-    this.close();
-    if (how.jump && open) return run("space.select", { id: open.id });
+    if (how.jump && open) { this.close(); return run("space.select", { id: open.id }); }
     const agent = what.session || how.shell ? null : this.agentFor(folder);
+    if (!what.session && !how.shell && !agent && !this.agentsLoaded) {
+      this.problem = "Still loading agents…";
+      return;
+    }
+    this.close();
     const argv = what.session ? what.session.argv : agent?.run;
     const h = this.hist[folder] ?? { n: 0 };
     this.hist[folder] = { n: h.n + 1, at: Date.now() };
