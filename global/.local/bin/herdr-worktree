@@ -5,7 +5,7 @@
 #   herdr-worktree remove <path> [--force]
 #   herdr-worktree dir
 #
-# create prints the checkout's path. The branch decides what happens:
+# create prints JSON {"path": "<checkout>", "space": "<id|null>"}. The branch decides what happens:
 #   checked out somewhere already   that checkout is reused
 #   a local branch                  it's checked out in a new worktree
 #   only on origin                  a local branch tracking it, in a new worktree
@@ -62,15 +62,21 @@ open_space() {
   open=$(printf '%s' "$ls" | spaces_at "$path" | head -n 1)
   if [ -n "$open" ]; then
     [ "$focus" = 1 ] && herdr-app do space.select --id "$open" >/dev/null
+    printf '%s\n' "$open"
     return 0
   fi
   was=$(printf '%s' "$ls" | jq -r '.spaces[] | select(.active) | .id' | head -n 1)
-  if ! herdr-app do space.new --name "$name" --folder "$path" >/dev/null 2>&1; then
+  res=$(herdr-app do space.new --name "$name" --folder "$path" 2>/dev/null) || {
     warn "Herdr didn't open a space for $path"
     return 0
-  fi
+  }
   # space.new always shows the new space.
   if [ "$focus" != 1 ] && [ -n "$was" ]; then herdr-app do space.select --id "$was" >/dev/null 2>&1 || true; fi
+  space=$(printf '%s' "$res" | jq -r '.space // .id // empty' 2>/dev/null || true)
+  if [ -z "$space" ]; then
+    space=$(herdr-app ls 2>/dev/null | spaces_at "$path" | head -n 1 || true)
+  fi
+  printf '%s\n' "$space"
 }
 
 create() {
@@ -107,8 +113,17 @@ create() {
       git -C "$main" worktree add -b "$branch" "$path" "${base:-HEAD}" >&2
     fi
   fi
-  open_space "$path" "$branch" "$focus"
-  printf '%s\n' "$path"
+  space=$(open_space "$path" "$branch" "$focus")
+  if command -v jq >/dev/null 2>&1; then
+    jq -n --arg p "$path" --arg s "$space" '{path: $p, space: (if $s == "" then null else $s end)}'
+  else
+    esc_path=$(printf '%s' "$path" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    if [ -n "$space" ]; then
+      printf '{"path":"%s","space":"%s"}\n' "$esc_path" "$space"
+    else
+      printf '{"path":"%s","space":null}\n' "$esc_path"
+    fi
+  fi
 }
 
 remove() {
