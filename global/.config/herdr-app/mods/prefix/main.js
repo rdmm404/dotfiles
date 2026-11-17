@@ -4,9 +4,10 @@
 
 import { View, div } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { commands, props, run, closeOverlay, theme, settings, shared } from "herdr";
+import { commands, props, run, closeOverlay, theme, settings, shared, setShared, layout, window } from "herdr";
 
 const PREFIX = "ctrl-space";
+let bound = false;
 
 // Keys available after the prefix: key -> app command, spelled as in
 // keys.json ("name" or "name:value"). Kept here rather than in a separate
@@ -39,7 +40,8 @@ const BINDINGS = {
   "shift-s": "app.settings",
   "?": "app.help",
   "d": "window.close",
-  "a": "mod.open:flat-launch",
+  "b": "layout.toggle:sidebar",
+  "space": "mod.open:flat-launch",
 };
 const MODIFIER_KEYS = new Set(["shift", "control", "ctrl", "alt", "super", "cmd", "meta", "fn", "win", "platform", "function"]);
 
@@ -69,7 +71,30 @@ const FLAT = {
   "space.close": ["flat-tabs.close-space"],
 };
 
+function findNode(node, id) {
+  if (node?.id === id) return node;
+  for (const child of node?.children ?? []) {
+    const found = findNode(child, id);
+    if (found) return found;
+  }
+  return null;
+}
+
+function toggleFlatSidebar() {
+  const sidebar = findNode(layout(), "sidebar");
+  if (sidebar?.hidden) run("layout.toggle", { id: "sidebar" });
+  const width = sidebar?.size?.px;
+  const narrow = (width ?? Infinity) < 160;
+  if (!narrow) setShared("sidebar.width", width);
+  setShared("sidebar.collapsed", !narrow);
+  return run("layout.resize", {
+    id: "sidebar",
+    px: narrow ? (shared("sidebar.width") ?? 268) : 44,
+  });
+}
+
 function invoke(action) {
+  if (shared("layout") === "flat" && action === "layout.toggle:sidebar") return toggleFlatSidebar();
   if (shared("layout") === "flat" && FLAT[action]) return run(...FLAT[action]);
   const at = action.indexOf(":");
   if (at < 0) return run(action, {});
@@ -82,14 +107,19 @@ function invoke(action) {
 
 export default class Prefix extends View {
   init(_props, cx) {
+    if (!bound) {
+      bound = true;
+      cx.bind_keys([{ keystroke: PREFIX, action: "prefix_launch", context: "Prefix" }]);
+    }
     this.handle = cx.focus_handle();
     this.handle.focus();
     cx.timer.after(40, () => this.handle.focus());
     cx.timer.after(200, () => this.handle.focus());
   }
 
-  press(e) {
+  press(e, cx) {
     if (MODIFIER_KEYS.has(e.key)) return;
+    cx.stop_propagation();
     const tried = [e.keystroke, e.key_char, e.key, e.modifiers?.shift ? `shift-${e.key}` : null];
     const key = tried.find((k) => k && Object.hasOwn(BINDINGS, k));
     closeOverlay(props().overlay);
@@ -103,8 +133,13 @@ export default class Prefix extends View {
     // follows the wrapped rows, so it fits any window width.
     return h_flex()
       .id("prefix")
+      .key_context("Prefix")
       .track_focus(this.handle)
-      .on_key_down((e, cx) => this.press(e))
+      .on_action("prefix_launch", () => {
+        closeOverlay(props().overlay);
+        invoke(BINDINGS["space"]);
+      })
+      .on_key_down((e, cx) => this.press(e, cx))
       .w_full()
       .items_start()
       .gap(15)
