@@ -1,6 +1,7 @@
 alias j='cd'
 alias f='cdi'
 alias lg='lazygit'
+alias oc='opencode'
 alias nvimrc='nvim ~/.config/nvim/'
 alias nman='bob'
 
