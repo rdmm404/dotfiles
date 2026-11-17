@@ -26,8 +26,8 @@ function find(node, id) {
   return null;
 }
 
-// Same as the agents mod: drops a status glyph, keeps a leading bracket or quote.
-const clean = (s) => (s ?? "").replace(/^[^\p{L}\p{N}\p{Ps}\p{Pi}]+/u, "").replace(/^\[ [!.] \] /, "").trim();
+// Same as the agents mod: drops a status glyph and OpenCode's "OC | ", keeps a leading bracket or quote.
+const clean = (s) => (s ?? "").replace(/^[^\p{L}\p{N}\p{Ps}\p{Pi}]+/u, "").replace(/^\[ [!.] \] /, "").replace(/^OC \| /, "").trim();
 
 // A tab Herdr named (unnamed, or after its program) follows its agent's live
 // title, as the agents list does; a name the person gave stays.

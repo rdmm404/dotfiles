@@ -427,7 +427,7 @@ export default class Spaces extends View {
         })
         .when(machine?.keeps_running_after_logout === false, el => el.child(div().id(`machine-logout-${m}`)
           .flex_none().text_color(t.blocked).tooltip("Agents stop when you disconnect. Click for the fix.")
-          .on_click((_e, cx) => { cx.stop_propagation(); openOverlay({ mod: "flat-machine-add", kind: "dialog", width: 560 }); }).child("⚠")))
+          .on_click((_e, cx) => { cx.stop_propagation(); run("mod.open", { name: "flat-machine-add" }); }).child("⚠")))
         .when(!collapsed, el => el.child(icon))
         .when(collapsed, el => el.child(div().relative().flex_none().child(icon).when(Boolean(m), el => el.child(badge))))
         .when(!collapsed, el => el.child(div().flex_1().truncate().child(m ?? "This computer"))
