@@ -93,6 +93,7 @@
     "ctrl-shift-w": "flat-tabs.close-tab",
     "alt-down": "flat-agents.next",
     "alt-up": "flat-agents.prev",
-    "alt-z": "flat-agents.toggle-children"
+    "alt-z": "flat-agents.toggle-children",
+    "alt-o": "flat-agents.open-pr"
   }
 }

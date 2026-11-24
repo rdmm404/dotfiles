@@ -114,6 +114,7 @@
     "alt-up": "flat-agents.prev",
     "cmd-]": "flat-agents.next",
     "cmd-[": "flat-agents.prev",
-    "alt-z": "flat-agents.toggle-children"
+    "alt-z": "flat-agents.toggle-children",
+    "alt-o": "flat-agents.open-pr"
   }
 }
