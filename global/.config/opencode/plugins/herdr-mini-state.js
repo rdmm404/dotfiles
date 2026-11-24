@@ -3,46 +3,25 @@
 // `herdr-core` tracks live agent status via OSC 7501 sequences on the pane's PTY.
 // Full `opencode` emits those from its TUI; `opencode mini --standalone` runs
 // `opencode serve --stdio --port 0` in a child process and doesn't emit OSC 7501
-// or run TUI plugins. Writing OSC 7501 to `/dev/tty` from the server `setup(ctx)`
-// hook bridges its lifecycle into `herdr-core` and Herdr's Agents tab.
+// or run TUI plugins. Writing OSC 7501 to the parent PTY from OpenCode v2's
+// `setup(ctx)` event stream bridges its lifecycle into `herdr-core` and Herdr's
+// Agents tab.
 import fs from "node:fs";
 import { execFileSync } from "node:child_process";
-
-const SESSION_STATE_BY_STATUS = new Map([
-  ["idle", "idle"],
-  ["active", "working"],
-  ["busy", "working"],
-  ["pending", "working"],
-  ["retry", "working"],
-  ["running", "working"],
-  ["streaming", "working"],
-  ["working", "working"],
-]);
 
 const CHILD_EVENT_STATES = new Map([
   ["permission.asked", "blocked"],
   ["question.asked", "blocked"],
+  ["session.permission.asked", "blocked"],
+  ["session.question.asked", "blocked"],
   ["permission.replied", "working"],
   ["question.replied", "working"],
   ["question.rejected", "working"],
 ]);
 
 const childSessions = new Map();
+let rootSessionID = null;
 let lastState = null;
-
-function sessionIDFromProperties(properties) {
-  return typeof properties?.sessionID === "string" && properties.sessionID
-    ? properties.sessionID
-    : undefined;
-}
-
-function stateFromSessionStatus(status) {
-  const kind = typeof status === "string" ? status : status?.type;
-  return typeof kind === "string"
-    ? SESSION_STATE_BY_STATUS.get(kind.toLowerCase())
-    : undefined;
-}
-
 let ttyPath = null;
 
 function resolveTtyPath() {
@@ -113,44 +92,71 @@ export default {
     // Register immediately so the pane appears in Agents even before the first prompt.
     emitOsc7501("idle");
 
-    ctx?.event?.subscribe?.((event) => {
-      const type = event?.type;
-      const properties = event?.properties ?? {};
-      const sessionID = sessionIDFromProperties(properties);
+    const stream = ctx?.event?.subscribe?.({});
+    if (!stream || typeof stream[Symbol.asyncIterator] !== "function") {
+      return;
+    }
 
-      const info = properties.info;
-      if (info?.id && info.parentID) {
-        childSessions.set(info.id, info.parentID);
-      }
-      if (sessionID && childSessions.has(sessionID)) {
-        const state = CHILD_EVENT_STATES.get(type);
-        if (state) emitOsc7501(state);
-        return;
-      }
+    void (async () => {
+      try {
+        for await (const event of stream) {
+          const type = event?.type;
+          const data = event?.data ?? event?.properties ?? {};
+          const sessionID =
+            typeof data?.sessionID === "string" && data.sessionID
+              ? data.sessionID
+              : undefined;
 
-      switch (type) {
-        case "session.status": {
-          const state = stateFromSessionStatus(properties.status);
-          if (state) emitOsc7501(state);
-          break;
+          const info = data.info;
+          const parentID = info?.parentID ?? data.parentID;
+          const infoID = info?.id ?? sessionID;
+          if (infoID && parentID) {
+            childSessions.set(infoID, parentID);
+          }
+
+          if (sessionID && childSessions.has(sessionID)) {
+            const state = CHILD_EVENT_STATES.get(type);
+            if (state) emitOsc7501(state);
+            continue;
+          }
+
+          if (sessionID && !rootSessionID && !childSessions.has(sessionID)) {
+            rootSessionID = sessionID;
+          }
+
+          switch (type) {
+            case "session.execution.started":
+            case "session.step.started":
+            case "session.inbox.delivered":
+            case "permission.replied":
+            case "question.replied":
+            case "question.rejected":
+            case "session.compacted":
+              emitOsc7501("working");
+              break;
+            case "permission.asked":
+            case "question.asked":
+            case "session.permission.asked":
+            case "session.question.asked":
+            case "session.execution.failed":
+            case "session.error":
+              emitOsc7501("blocked");
+              break;
+            case "session.execution.succeeded":
+            case "session.execution.cancelled":
+            case "session.execution.aborted":
+            case "session.idle":
+              if (!sessionID || !rootSessionID || sessionID === rootSessionID) {
+                emitOsc7501("idle");
+              }
+              break;
+            default:
+              break;
+          }
         }
-        case "permission.replied":
-        case "question.replied":
-        case "question.rejected":
-        case "session.compacted":
-          emitOsc7501("working");
-          break;
-        case "permission.asked":
-        case "question.asked":
-        case "session.error":
-          emitOsc7501("blocked");
-          break;
-        case "session.idle":
-          emitOsc7501("idle");
-          break;
-        default:
-          break;
+      } catch {
+        // Stream closed on shutdown.
       }
-    });
+    })();
   },
 };
