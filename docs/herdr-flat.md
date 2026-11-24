@@ -269,15 +269,17 @@ the folder costs one full read.
 Herdr updates itself and never touches clones, so after an update the flat mods lag upstream
 until they're ported. Herdr has no hooks, so the status bar mod checks on every start. When
 `updates().app.version` differs from its own `cloned_from.version`, it posts a toast once per
-version and shows "port flat mods <old> → <new>" in the status bar. Clicking either opens a
-Claude tab in this repo with the porting task, which points here. The status bar item stays
+version and shows "port flat mods <old> → <new>" in the status bar. Clicking either runs
+`herdr-worktree create herdr-port-<new> --base main --cwd <repo> --focus` to create (or reuse) a
+worktree and open its own space, then opens an agent tab there with the porting task
+(`HERDR_PORT_HARNESS` defaults to `claude`; `HERDR_PORT_MODEL` sets the model slug, using
+`opencode mini --standalone --model` when the harness is `opencode`). The status bar item stays
 until the port bumps the versions.
 
 Steps for the porting agent:
 
-1. **Branch:** create `herdr-port-<new>` from `main` with `git switch -c`. Use a branch in this
-   checkout, not a worktree: the running app reads the files through this checkout's symlinks,
-   and the checks need that.
+1. **Worktree:** confirm you're in the `herdr-port-<new>` worktree branched from `main` (created by
+   `herdr-worktree` before the tab opened).
 2. **Diff:** run `lib/herdr_flat/upstream-diff > <scratch>/upstream.diff` and read all of it.
    It has one section per flat mod, plus `layouts/main.json`, mods added or removed upstream,
    and Herdr's API docs. Upstream is `herdrdev/herdr-app`, tags `v<version>`.
@@ -290,10 +292,12 @@ Steps for the porting agent:
 4. **Bump:** set `cloned_from.version` to the new version in every flat mod's `mod.json`,
    including mods with no upstream changes (`flat-launch` has none to bump). This clears the
    status bar item.
-5. **Check:** run the change loop above for every mod whose code changed, plus
-   `lib/herdr_flat/sync --check`. Run `herdr-app check` on the `~/.config/herdr-app/mods/<mod>`
-   path: on a repo folder it writes `gpui-kit.d.ts` and `jsconfig.json` into the repo. Ask the
-   user to open the click-only screens whose code changed and send screenshots. A port that
+5. **Check:** run `lib/herdr_flat/sync --check`, `tests/herdr_flat_test.sh`, and
+   `herdr-app check global/.config/herdr-app/mods/<mod>` (against the worktree's mod folder, since
+   `~/.config/herdr-app/mods/<mod>` symlinks to the main checkout; `herdr-app check` writes
+   `gpui-kit.d.ts` and `jsconfig.json` into the folder if absent). Note that `lib/herdr_flat/reload`
+   reloads the main checkout's symlinks until the port is merged or redeployed with `./dot deploy --replace`.
+   Ask the user to open the click-only screens whose code changed and send screenshots. A port that
    only bumps versions needs no screenshots.
 6. **Hand back:** commit on the branch and summarise each mod's port for the user. The user
    merges.
