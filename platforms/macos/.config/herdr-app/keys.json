@@ -109,6 +109,11 @@
     "cmd-shift-p": "mod.open:flat-palette",
     "cmd-w": "flat-tabs.close-tab",
     "f2": "flat-tabs.rename-tab",
-    "shift-f2": "flat-tabs.rename-space"
+    "shift-f2": "flat-tabs.rename-space",
+    "alt-down": "flat-agents.next",
+    "alt-up": "flat-agents.prev",
+    "cmd-]": "flat-agents.next",
+    "cmd-[": "flat-agents.prev",
+    "alt-z": "flat-agents.toggle-children"
   }
 }

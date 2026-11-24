@@ -90,6 +90,9 @@
     "ctrl-shift-k": "mod.open:flat-picker",
     "f2": "flat-tabs.rename-tab",
     "shift-f2": "flat-tabs.rename-space",
-    "ctrl-shift-w": "flat-tabs.close-tab"
+    "ctrl-shift-w": "flat-tabs.close-tab",
+    "alt-down": "flat-agents.next",
+    "alt-up": "flat-agents.prev",
+    "alt-z": "flat-agents.toggle-children"
   }
 }
