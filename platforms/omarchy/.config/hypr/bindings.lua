@@ -31,13 +31,9 @@ o.rebind("SUPER + SHIFT + Q", "Calculator (Python)", "python-calculator")
 o.rebind("XF86Calculator", "Calculator (Python)", "python-calculator")
 o.bind("SUPER + CTRL + Q", "Calculator (Python)", "python-calculator")
 
--- Launch Herdr with compact Ghostty padding while preserving the current directory.
+-- Launch the Herdr desktop app.
 hl.unbind("SUPER + CTRL + RETURN")
-o.bind(
-  "SUPER + CTRL + RETURN",
-  "Herdr (compact)",
-  'uwsm-app -- ghostty --gtk-single-instance=false --working-directory="$(omarchy-cmd-terminal-cwd)" --window-padding-x=2 --window-padding-y=1 -e herdr'
-)
+o.bind("SUPER + CTRL + RETURN", "Herdr", "uwsm-app -- herdr-app")
 
 -- Disable a default binding without replacing it.
 -- hl.unbind("SUPER + SHIFT + B")
