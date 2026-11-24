@@ -61,9 +61,13 @@ export default class Toast extends View {
     if (!p.flat) return div();
     const login = /^([a-z0-9][a-z0-9_.-]{0,31}) needs login; run hc machine login \1$/.exec(p.body ?? "");
     const command = login ? `hc machine login ${login[1]}` : null;
+    const text = (value) => p.fitHeight
+      ? div().child(value)
+      : div().truncate().child(typeof value === "string" ? value.split("\n", 1)[0] : value);
     return h_flex()
       .id("toast")
-      .size_full()
+      .when(p.fitHeight, (el) => el.w_full().min_h(70).flex_none().py(S2 + HAIR))
+      .when(!p.fitHeight, (el) => el.size_full())
       .px(S4)
       .gap(S2)
       .items_center()
@@ -79,8 +83,8 @@ export default class Toast extends View {
         v_flex()
           .flex_1()
           .overflow_hidden()
-          .child(div().truncate().font_semibold().text_size(TEXT).text_color(t.foreground).child(login ? `${login[1]} needs a login: run` : p.title ?? ""))
-          .when(!login && Boolean(p.body), (el) => el.child(div().truncate().text_size(TEXT).text_color(t.muted).child(p.body ?? "")))
+          .child(text(login ? `${login[1]} needs a login: run` : p.title ?? "").font_semibold().text_size(TEXT).text_color(t.foreground))
+          .when(!login && Boolean(p.body), (el) => el.child(text(p.body).text_size(TEXT).text_color(t.muted)))
           .when(Boolean(login), (el) => el.child(h_flex().gap(S2).items_center()
             .child(div().flex_1().min_w(0).truncate().tooltip(command).text_size(TEXT).text_color(t.muted).child(command))
             .child(div().id("toast-login-copy").flex_none().px(S1).py(S1).rounded(R).bg(t.raised)
